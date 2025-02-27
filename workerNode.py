@@ -2,6 +2,9 @@ import pika
 import pymongo
 from concurrent.futures import ThreadPoolExecutor
 import threading
+import time
+import json
+import random
 
 # MongoDB 연결
 mongo_client = pymongo.MongoClient("mongodb://localhost:27017/")
@@ -13,48 +16,81 @@ def create_channel():
     credentials = pika.PlainCredentials('test', 'test')
     connection = pika.BlockingConnection(pika.ConnectionParameters('localhost', port=5672, credentials=credentials))
     channel = connection.channel()
-    channel.queue_declare(queue='task_queue', durable=True)
+
+    # 큐 선언 시 TTL 설정 5초
+    ttl = 5000  
+    arguments = {
+        'x-message-ttl': ttl  
+    }
+
+    channel.queue_declare(queue='task_queue', durable=True, arguments=arguments)
 
     channel.basic_qos(prefetch_count=1)
 
+
     return connection, channel
 
-# 메시지 처리 함수 
 def process_message(ch, method, properties, body):
-    message = body.decode()
-    print(f"[Worker] Received: {message}")
+    message_data = json.loads(body.decode())
+    status = message_data["status"]
+    message = message_data["message"]
 
-    def task():
-        # 메시지를 대문자로 변환하는 작업을 각 문자별로 스레드
-        def uppercase_char(char):
-            return char.upper()
+    # 강제 오류 발생 테스트
+    error_num = random.randint(1, 20)
 
-        def thread_task(char, result, index):
-            result[index] = uppercase_char(char)
+    try:
+        print(f"[Worker] Received: {message}, Status: {status}")
+        if error_num == 10: # 5% 확률
+            status = "Failed"
+        else:
+            status = "Success"
 
-        result = [''] * len(message)
-        threads = []
+        if status == "Failed":
+            print("--------Error 발생-------")  # Exception!
+            raise Exception("Intentional error for testing")
 
-        # 각 문자를 대문자로 바꾸는 스레드 생성
-        for index, char in enumerate(message):
-            thread = threading.Thread(target=thread_task, args=(char, result, index))
-            threads.append(thread)
-            thread.start()
+        def task():
+            # 메시지를 대문자로 변환하는 작업을 각 문자별로 쓰레드로 처리
+            def uppercase_char(char):
+                return char.upper()
 
+            def thread_task(char, result, index):
+                result[index] = uppercase_char(char)
 
-        for thread in threads:
-            thread.join()
+            result = [''] * len(message)
+            threads = []
 
-        uppercased_message = ''.join(result)
-        print(f"Uppercased Message: {uppercased_message}")
+            # 각 문자를 대문자로 바꾸는 스레드 생성
+            for index, char in enumerate(message):
+                thread = threading.Thread(target=thread_task, args=(char, result, index))
+                threads.append(thread)
+                thread.start()
 
-        collection.insert_one({"message": message})
-        print(f"Saved to MongoDB: {message}")
-    
-    task()
+            # 모든 스레드가 종료될 때까지 대기
+            for thread in threads:
+                thread.join()
 
-    # ACK 보내기
-    ch.basic_ack(delivery_tag=method.delivery_tag)
+            uppercased_message = ''.join(result)
+            print(f"Uppercased Message: {uppercased_message}")
+
+            # MongoDB에 저장
+            collection.insert_one({"message": uppercased_message})
+        
+        task()
+
+        # 정상적으로 메시지가 처리되었으므로 ACK 보내기
+        ch.basic_ack(delivery_tag=method.delivery_tag)
+
+    except Exception as e:
+        status = "Retry"  # 오류 발생 시 상태를 Retry로 설정
+        print(f"[Worker] Error: {e}")
+
+        message_data["status"] = status  # 상태를 Retry로 변경
+        
+        ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)  # 재처리
+
+    time.sleep(0.5)  # TODO: Just for test, remove later
+
 
 # RabbitMQ Worker
 def worker():
