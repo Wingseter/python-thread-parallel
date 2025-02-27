@@ -82,10 +82,7 @@ def process_message(ch, method, properties, body):
         ch.basic_ack(delivery_tag=method.delivery_tag)
 
     except Exception as e:
-        status = "Retry"  # 오류 발생 시 상태를 Retry로 설정
         print(f"[Worker] Error: {e}")
-
-        message_data["status"] = status  # 상태를 Retry로 변경
         
         ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)  # 재처리
 
