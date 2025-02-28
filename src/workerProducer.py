@@ -2,24 +2,9 @@ import pika
 import time
 import json
 import uuid
+from connectService import create_channel
 
-credentials = pika.PlainCredentials('test', 'test')
-for _ in range(10):  # 최대 10번 재시도
-    try:
-        connection = pika.BlockingConnection(pika.ConnectionParameters('rabbit', port=5672, credentials=credentials))
-        break  
-    except pika.exceptions.AMQPConnectionError:
-        print("RabbitMQ connection failed, RETRYING")
-        time.sleep(5)  # 5초 후 재시도
-
-channel = connection.channel()
-
-# 큐 선언 시 TTL 설정 5초
-ttl = 5000  
-arguments = { 'x-message-ttl': ttl }
-channel.queue_declare(queue='task_queue', durable=True, arguments=arguments)
-channel.basic_qos(prefetch_count=1)
-
+connection, channel = create_channel()
 
 # 메시지 전송
 def send_messages(num_messages=10):
@@ -42,7 +27,7 @@ def send_messages(num_messages=10):
 
             print(f"Sent: {message_body}")
         except Exception as e:
-            print(f"Error sending message {message}: {e}")
+            print(f"메시지 보내기 실패 {message}: {e}")
 
         time.sleep(0.5)  
 

@@ -1,9 +1,13 @@
 global:
-  scrape_interval: 5s  # Collect metrics every 5 seconds
+  scrape_interval: 5s
 
 scrape_configs:
-  - job_name: 'parallal_workers'
+  - job_name: 'worker1'
     static_configs:
-      - targets: ['worker1:8001', 'worker2:8002', 'worker3:8003']
-        labels:
-          service: "parallal_workers"
+      - targets: ['worker1:9001']
+  - job_name: 'worker2'
+    static_configs:
+      - targets: ['worker2:9002']
+  - job_name: 'worker3'
+    static_configs:
+      - targets: ['worker3:9003']

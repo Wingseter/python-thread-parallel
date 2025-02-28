@@ -38,46 +38,49 @@ services:
 
   worker1:
     build: 
-      context: ./workerNode
+      context: .
       dockerfile: Dockerfile.worker
     container_name: worker1
     environment:
       - WORKER_PORT=8001
     ports:
       - "8001:8001"
+      - "9001:9001"
     depends_on:
       - producer
     restart: always
 
   worker2:
     build: 
-      context: ./workerNode
+      context: .
       dockerfile: Dockerfile.worker
     container_name: worker2
     environment:
       - WORKER_PORT=8002
     ports:
       - "8002:8002"
+      - "9002:9002"
     depends_on:
       - producer
     restart: always
 
   worker3:
     build: 
-      context: ./workerNode
+      context: .
       dockerfile: Dockerfile.worker
     container_name: worker3
     environment:
       - WORKER_PORT=8003
     ports:
       - "8003:8003"
+      - "9003:9003"
     depends_on:
       - producer
     restart: always
 
   producer:
     build: 
-      context: ./workerProducer
+      context: .
       dockerfile: Dockerfile.producer
     container_name: producer
     depends_on:
