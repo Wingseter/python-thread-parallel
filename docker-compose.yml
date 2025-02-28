@@ -1,5 +1,4 @@
 services:
-
   db:
     image: mongo:7.0.0
     container_name: db
@@ -35,4 +34,52 @@ services:
     environment:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=admin
+    restart: always
+
+  worker1:
+    build: 
+      context: ./workerNode
+      dockerfile: Dockerfile.worker
+    container_name: worker1
+    environment:
+      - WORKER_PORT=8001
+    ports:
+      - "8001:8001"
+    depends_on:
+      - producer
+    restart: always
+
+  worker2:
+    build: 
+      context: ./workerNode
+      dockerfile: Dockerfile.worker
+    container_name: worker2
+    environment:
+      - WORKER_PORT=8002
+    ports:
+      - "8002:8002"
+    depends_on:
+      - producer
+    restart: always
+
+  worker3:
+    build: 
+      context: ./workerNode
+      dockerfile: Dockerfile.worker
+    container_name: worker3
+    environment:
+      - WORKER_PORT=8003
+    ports:
+      - "8003:8003"
+    depends_on:
+      - producer
+    restart: always
+
+  producer:
+    build: 
+      context: ./workerProducer
+      dockerfile: Dockerfile.producer
+    container_name: producer
+    depends_on:
+      - rabbit
     restart: always

@@ -1,11 +1,17 @@
 import pika
 import time
-import random
 import json
 import uuid
 
 credentials = pika.PlainCredentials('test', 'test')
-connection = pika.BlockingConnection(pika.ConnectionParameters('localhost', port=5672, credentials=credentials))
+for _ in range(10):  # 최대 10번 재시도
+    try:
+        connection = pika.BlockingConnection(pika.ConnectionParameters('rabbit', port=5672, credentials=credentials))
+        break  
+    except pika.exceptions.AMQPConnectionError:
+        print("RabbitMQ connection failed, RETRYING")
+        time.sleep(5)  # 5초 후 재시도
+
 channel = connection.channel()
 
 # 큐 선언 시 TTL 설정 5초
@@ -44,4 +50,4 @@ def send_messages(num_messages=10):
     connection.close()
 
 if __name__ == "__main__":
-    send_messages(num_messages=20)
+    send_messages(num_messages=987654321)

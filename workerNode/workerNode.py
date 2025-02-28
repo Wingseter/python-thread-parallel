@@ -1,20 +1,28 @@
 import pika
 import pymongo
-from concurrent.futures import ThreadPoolExecutor
 import threading
 import time
 import json
 import random
+from prometheus_client import start_http_server, Counter, Gauge
+import socket 
+import os
 
 # MongoDB 연결
-mongo_client = pymongo.MongoClient("mongodb://localhost:27017/")
+mongo_client = pymongo.MongoClient("mongodb://db:27017/")
 db = mongo_client["test_db"]
 collection = db["processed_tasks"]
 
-
 def create_channel():
     credentials = pika.PlainCredentials('test', 'test')
-    connection = pika.BlockingConnection(pika.ConnectionParameters('localhost', port=5672, credentials=credentials))
+    for _ in range(10):  # 최대 10번 재시도
+        try:
+            connection = pika.BlockingConnection(pika.ConnectionParameters('rabbit', port=5672, credentials=credentials))
+            break  
+        except pika.exceptions.AMQPConnectionError:
+            print("RabbitMQ connection failed, RETRYING")
+            time.sleep(5)  # 5초 후 재시도
+
     channel = connection.channel()
     # 큐 선언 시 TTL 설정 5초
     ttl = 5000  
@@ -39,6 +47,7 @@ def process_message(ch, method, properties, body):
 
     try:
         print(f"[Worker] Processing: {message}, Task ID: {task_id}")
+
         if error_num == 1: # 5% 확률
             print("--------Error 발생-------")  # Exception ACK 안보내고 Queue에 다시 넣기
             raise Exception("에러상황1: 들어온 정보에 작업 중에 에러가 발생한 상황")
@@ -94,14 +103,13 @@ def process_message(ch, method, properties, body):
 
     except Exception as e:
         print(f"[Worker] Error: {e}")
-        
         ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True) 
 
     time.sleep(0.5)  # TODO: Just for test, remove later
 
 
 # RabbitMQ Worker
-def worker():
+def worker(worker_port):
     connection, channel = create_channel()
     channel.basic_consume(queue='task_queue', on_message_callback=process_message)
     print(f"Worker started")
@@ -109,4 +117,5 @@ def worker():
     channel.start_consuming()
 
 if __name__ == "__main__":
-    worker()
+    worker_port = int(os.getenv("WORKER_PORT", 8001))
+    worker(worker_port)

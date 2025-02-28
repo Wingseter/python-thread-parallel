@@ -1,7 +1,9 @@
 global:
-  scrape_interval: 15s
+  scrape_interval: 5s  # Collect metrics every 5 seconds
 
 scrape_configs:
-  - job_name: "prometheus"
+  - job_name: 'parallal_workers'
     static_configs:
-      - targets: ["localhost:9090"]
+      - targets: ['worker1:8001', 'worker2:8002', 'worker3:8003']
+        labels:
+          service: "parallal_workers"
