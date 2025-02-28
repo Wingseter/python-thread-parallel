@@ -12,7 +12,6 @@ collection = connect_db()
 
 def task(message):
     result = [''] * len(message)
-    threads = []
     error_flag = 1
 
     # 예외 처리를 강화해서 각 
@@ -28,11 +27,10 @@ def task(message):
             print(f"Error in thread_task: {e}")
             error_flag = error_flag * 0
 
-
+    threads = [threading.Thread(target=thread_task, args=(char, result, index)) for index, char in enumerate(message)]
+    
     # 각 문자를 대문자로 바꾸는 스레드 생성
-    for index, char in enumerate(message):
-        thread = threading.Thread(target=thread_task, args=(char, result, index))
-        threads.append(thread)
+    for thread in threads:
         thread.start()
 
     # 모든 스레드가 종료될 때까지 대기
