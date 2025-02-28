@@ -8,11 +8,16 @@ from prometheus_client import start_http_server, Counter, Gauge
 import os
 from connectService import create_channel, connect_db
 
+TOTAL_MESSAGES = Counter("total_messages", "Total number of messages received")
+FAILED_MESSAGES = Counter("failed_messages", "Total number of failed messages")
+QUEUE_SIZE = Gauge("queue_size", "Number of messages in the queue")
+
+
 collection = connect_db()
 
 def task(message):
     result = [''] * len(message)
-    error_flag = 1
+    error_flag = threading.Event()
 
     # 예외 처리를 강화해서 각 
     # 메시지를 대문자로 변환하는 작업을 각 문자별로 쓰레드로 처리
@@ -25,7 +30,7 @@ def task(message):
             result[index] = uppercase_char(char)
         except Exception as e:
             print(f"Error in thread_task: {e}")
-            error_flag = error_flag * 0
+            error_flag = error_flag.set()
 
     threads = [threading.Thread(target=thread_task, args=(char, result, index)) for index, char in enumerate(message)]
     
@@ -38,7 +43,7 @@ def task(message):
         thread.join()
 
     # 멀티 쓰레드 중 하나라도 에러가 발생할 경우
-    if error_flag == 0:
+    if error_flag.is_set():
         raise Exception("에러상황3: 강화된 멀티 쓰레드 에러 처리")
 
     # 멀티 쓰레드 결과 출력
