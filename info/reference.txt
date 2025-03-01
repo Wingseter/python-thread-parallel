@@ -29,3 +29,9 @@ https://github.com/grafana/helm-charts/issues/3017
 https://github.com/grafana/loki/issues/7614
 
 https://docs.techdox.nz/loki/
+
+https://jhyonhyon.tistory.com/76
+
+https://stackoverflow.com/questions/75420212/how-to-pass-erlang-cookie-in-docker-run-after-rabbitmq-erlang-cookie-got-depri
+
+https://mythpoy.tistory.com/50

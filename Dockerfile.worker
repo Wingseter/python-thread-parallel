@@ -1,4 +1,7 @@
-FROM python:3.9-slim
+FROM python:3.9
+
+# Tini 설치
+RUN apt-get update && apt-get install -y tini && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
@@ -14,4 +17,8 @@ EXPOSE 8001 8002 8003
 
 ENV WORKER_PORT=8001
 
+# Tini를 ENTRYPOINT로 설정하여 Python이 PID 1이 되지 않도록 함
+ENTRYPOINT ["/usr/bin/tini", "--"]
+
+# 기존 CMD 유지
 CMD ["python", "workerNode.py"]

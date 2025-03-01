@@ -38,7 +38,6 @@ def create_rabbit_channel():
     # DLX와 DLQ 바인딩
     channel.queue_bind(queue='dead_letter_queue', exchange='dlx_exchange', routing_key='dlx_routing_key')
 
-
     # 큐 선언 시 TTL 설정 5초
     ttl = 5000  
     arguments = { 

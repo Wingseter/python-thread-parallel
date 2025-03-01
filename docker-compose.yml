@@ -25,8 +25,11 @@ services:
     environment:
       - WORKER_PORT=8001
       - WORKER_ID=worker1
+      - REMOTE_PORT=9001
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+    ports:
+      - "9001:9001"  
     networks:
       - default
     depends_on:
@@ -41,8 +44,11 @@ services:
     environment:
       - WORKER_PORT=8002
       - WORKER_ID=worker2
+      - REMOTE_PORT=9002
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+    ports:
+      - "9002:9002"  
     networks:
       - default
     depends_on:
@@ -57,8 +63,11 @@ services:
     environment:
       - WORKER_PORT=8003
       - WORKER_ID=worker3
+      - REMOTE_PORT=9003
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+    ports:
+      - "9003:9003"  
     networks:
       - default
     depends_on:
