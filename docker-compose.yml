@@ -28,6 +28,13 @@ services:
       - REMOTE_PORT=9001
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      - MONGO_HOST=db
+      - MONGO_PORT=27017
+      - RABBIT_HOST=rabbit
+      - RABBIT_PORT=5672
+      - RABBITMQ_USER=test
+      - RABBITMQ_PASS=test
+      - LOKI_URL=http://loki:3100/loki/api/v1/push
     ports:
       - "9001:9001"  
     networks:
@@ -47,6 +54,13 @@ services:
       - REMOTE_PORT=9002
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      - MONGO_HOST=db
+      - MONGO_PORT=27017
+      - RABBIT_HOST=rabbit
+      - RABBIT_PORT=5672
+      - RABBITMQ_USER=test
+      - RABBITMQ_PASS=test
+      - LOKI_URL=http://loki:3100/loki/api/v1/push
     ports:
       - "9002:9002"  
     networks:
@@ -66,6 +80,13 @@ services:
       - REMOTE_PORT=9003
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      - MONGO_HOST=db
+      - MONGO_PORT=27017
+      - RABBIT_HOST=rabbit
+      - RABBIT_PORT=5672
+      - RABBITMQ_USER=test
+      - RABBITMQ_PASS=test
+      - LOKI_URL=http://loki:3100/loki/api/v1/push
     ports:
       - "9003:9003"  
     networks:

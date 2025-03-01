@@ -96,7 +96,7 @@ def process_message(ch, method, properties, body):
         if error_num == 1:
             raise Exception(f"에러 상황1: 들어온 {message} 에 작업 중에 에러가 발생한 상황(ACK 없이 재시도)")
         if error_num == 2:
-            log("error", "에러 발생(작업 시작 ~ 중간) Criical Error Occurred - Worker Node DIE!")
+            log("error", "에러 발생(작업 시작 ~ 중간) 노드 죽음")
             time.sleep(1)
             os.kill(os.getpid(), signal.SIGSEGV) # 노드가 죽어서 다음 실행 못함
 
@@ -108,7 +108,7 @@ def process_message(ch, method, properties, body):
         if error_num == 3:
             raise Exception(f"에러상황2: 작업 완료 했는데 노드가 불안정해서 {message} 중복이 발생할 수 있는 상황")
         if error_num == 4:
-            log("error", "에러 발생(작업 이후) Criical Error Occurred - Worker Node DIE!")
+            log("error", "에러 발생(작업 이후) 노드 죽음")
             time.sleep(1)
             os.kill(os.getpid(), signal.SIGSEGV)
 

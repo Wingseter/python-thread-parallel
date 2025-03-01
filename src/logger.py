@@ -5,7 +5,7 @@ from lokiHandler import LokiHandler
 # 환경 변수
 WORKER_ID = os.getenv("WORKER_ID", "default")
 WORKER_PORT = os.getenv("WORKER_PORT", "8001")
-LOKI_URL = "http://loki:3100/loki/api/v1/push"
+LOKI_URL = os.getenv("LOKI_URL", "http://localhost:3100/loki/api/v1/push")
 
 def get_workerID():
     return WORKER_ID
