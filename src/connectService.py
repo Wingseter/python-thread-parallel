@@ -1,8 +1,10 @@
 import pika
 import time
 import pymongo
+import requests
 
 def create_channel():
+    print("Waiting for RabbitMQ Connection...")
     # RabbitMQ 연결
     credentials = pika.PlainCredentials('test', 'test')
     for _ in range(10):  # 최대 10번 재시도

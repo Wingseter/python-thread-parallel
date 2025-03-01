@@ -27,11 +27,11 @@ def send_messages(num_messages=10):
 
             print(f"Sent: {message_body}")
         except Exception as e:
-            print(f"메시지 보내기 실패 {message}: {e}")
+            print(f"Send message failed {message}: {e}")
 
         time.sleep(0.5)  
 
-    print("모든 메시지 전송 완료")
+    print("All Message Sent Successfully")
     connection.close()
 
 if __name__ == "__main__":

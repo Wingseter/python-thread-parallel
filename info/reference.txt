@@ -21,3 +21,9 @@ https://hanryang1125.tistory.com/48
 https://github.com/PylotStuff/python-prometheus-grafana/blob/main/docker-compose.yml
 
 https://jh-bk.tistory.com/40
+
+https://www.youtube.com/watch?v=h_GGd7HfKQ8
+
+https://github.com/grafana/helm-charts/issues/3017
+
+https://github.com/grafana/loki/issues/7614

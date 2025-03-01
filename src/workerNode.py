@@ -1,103 +1,129 @@
-import pika
-import pymongo
 import threading
 import time
 import json
 import random
-from prometheus_client import start_http_server, Counter, Gauge
 import os
+import requests
 from connectService import create_channel, connect_db
+from lokiHandler import LokiHandler
+import logging
 
-TOTAL_MESSAGES = Counter("total_messages", "Total number of messages received")
-FAILED_MESSAGES = Counter("failed_messages", "Total number of failed messages")
-QUEUE_SIZE = Gauge("queue_size", "Number of messages in the queue")
+# 환경 변수
+WORKER_ID = os.getenv("WORKER_ID", "default")
+WORKER_PORT = os.getenv("WORKER_PORT", "8001")  
+LOKI_URL = "http://loki:3100/loki/api/v1/push"
 
-
+# MongoDB 연결
 collection = connect_db()
 
+# Logging 설정
+logger = logging.getLogger(f"worker_{WORKER_PORT}")
+logger.setLevel(logging.INFO)
+
+# Loki 핸들러 추가
+loki_handler = LokiHandler(
+    url=LOKI_URL,
+    labels={"job": "worker", "worker_id": WORKER_ID, "port": WORKER_PORT}
+)
+formatter = logging.Formatter("[%(asctime)s] %(levelname)s - %(message)s")
+loki_handler.setFormatter(formatter)
+logger.addHandler(loki_handler)
+
+# 콘솔 출력 핸들러 추가
+console_handler = logging.StreamHandler()
+console_handler.setFormatter(formatter)
+logger.addHandler(console_handler)
+
+# 로그 출력 함수 
+def log(level, message):
+    formatted_message = f"[Worker {WORKER_PORT}] {message}"
+    
+    if level == "info":
+        logger.info(formatted_message)
+    elif level == "error":
+        logger.error(formatted_message)
+    elif level == "warning":
+        logger.warning(formatted_message)
+    else:
+        logger.debug(formatted_message)
+
+# 메시지 처리 함수
 def task(message):
     result = [''] * len(message)
     error_flag = threading.Event()
 
-    # 예외 처리를 강화해서 각 
-    # 메시지를 대문자로 변환하는 작업을 각 문자별로 쓰레드로 처리
     def uppercase_char(char):
         return char.upper()
 
-    # 각 문자를 대문자로 변환하는 작업을 수행하는 스레드 함수
     def thread_task(char, result, index):
         try:
             result[index] = uppercase_char(char)
         except Exception as e:
-            print(f"Error in thread_task: {e}")
-            error_flag = error_flag.set()
+            log("error", f"Error in thread_task: {e}")
+            error_flag.set()
 
     threads = [threading.Thread(target=thread_task, args=(char, result, index)) for index, char in enumerate(message)]
-    
-    # 각 문자를 대문자로 바꾸는 스레드 생성
+
     for thread in threads:
         thread.start()
-
-    # 모든 스레드가 종료될 때까지 대기
     for thread in threads:
         thread.join()
 
-    # 멀티 쓰레드 중 하나라도 에러가 발생할 경우
     if error_flag.is_set():
         raise Exception("에러상황3: 강화된 멀티 쓰레드 에러 처리")
 
-    # 멀티 쓰레드 결과 출력
     uppercased_message = ''.join(result)
-    print(f"Uppercased Message: {uppercased_message}")
+    log("info", f"Uppercased Message: {uppercased_message}")
 
     return uppercased_message
 
+# RabbitMQ 메시지 처리
 def process_message(ch, method, properties, body):
     message_data = json.loads(body.decode())
     task_id = message_data["task_id"]
     message = message_data["message"]
 
-    if collection.find_one({"task_id": task_id}):  # 이미 처리된 메시지인 경우
-        print(f"[Worker] Task ID: {task_id} already processed")
+    if collection.find_one({"task_id": task_id}):
+        log("info", f"Task ID: {task_id} already processed")
         ch.basic_ack(delivery_tag=method.delivery_tag)
         return
 
-    # 강제 오류 발생 테스트 TODO: 리모드로 변경
     error_num = random.randint(1, 20)
 
     try:
-        print(f"[Worker] Processing: {message}, Task ID: {task_id}")
+        log("info", f"Processing: {message}, Task ID: {task_id}")
 
-        if error_num == 1: # 5% 확률
-            print("--------Error 발생-------")  # Exception ACK 안보내고 Queue에 다시 넣기
+        if error_num == 1:
+            log("error", "에러상황1: 작업 중 에러 발생 (ACK 없이 재시도)")
             raise Exception("에러상황1: 들어온 정보에 작업 중에 에러가 발생한 상황")
-      
+
         uppercase_message = task(message)
-        # MongoDB에 저장
+
         collection.insert_one({"task_id": task_id, "message": uppercase_message, "status": "Success"})
-        
-        if error_num == 2: # 역시 5% 확률
-            print("--------Error 발생-------")  # Exception 완료 했는데 ACK 안보낼 경우
+
+        if error_num == 2:
+            log("error", "에러상황2: 작업 완료 후 ACK 누락 가능성")
             raise Exception("에러상황2: 작업 완료 했는데 노드가 불안정해서 중복이 발생할 수 있는 상황")
- 
-        # 정상적으로 메시지가 처리되었으므로 ACK 보내기
+
         ch.basic_ack(delivery_tag=method.delivery_tag)
+        log("info", f"Task {task_id} processed successfully")
 
     except Exception as e:
-        print(f"[Worker] Error: {e}")
-        ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True) 
+        log("error", f"Error processing task {task_id}: {e}")
+        ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
 
-    time.sleep(0.5)  # TODO: Just for test, remove later
-
+    time.sleep(0.5)
 
 # RabbitMQ Worker
 def worker(worker_port):
     connection, channel = create_channel()
     channel.basic_consume(queue='task_queue', on_message_callback=process_message)
-    print(f"Worker started")
+    
+    log("info", f"Worker started on port {worker_port}")
 
     channel.start_consuming()
 
 if __name__ == "__main__":
-    worker_port = int(os.getenv("WORKER_PORT", 8001))
+    worker_port = int(WORKER_PORT)
+    log("info", f"Worker Port: {worker_port}")
     worker(worker_port)

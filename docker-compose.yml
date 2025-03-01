@@ -17,25 +17,6 @@ services:
       - RABBITMQ_DEFAULT_PASS=test
     restart: always
 
-  prometheus:
-    image: prom/prometheus
-    container_name: prometheus
-    volumes:
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml
-    ports:
-      - "9090:9090"
-    restart: always
-
-  grafana:
-    image: grafana/grafana
-    container_name: grafana
-    ports:
-      - "3000:3000"
-    environment:
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=admin
-    restart: always
-
   worker1:
     build: 
       context: .
@@ -43,11 +24,11 @@ services:
     container_name: worker1
     environment:
       - WORKER_PORT=8001
-    ports:
-      - "8001:8001"
-      - "9001:9001"
+      - WORKER_ID=worker1
+    networks:
+      - default
     depends_on:
-      - producer
+      - loki
     restart: always
 
   worker2:
@@ -57,11 +38,11 @@ services:
     container_name: worker2
     environment:
       - WORKER_PORT=8002
-    ports:
-      - "8002:8002"
-      - "9002:9002"
+      - WORKER_ID=worker2
+    networks:
+      - default
     depends_on:
-      - producer
+      - loki
     restart: always
 
   worker3:
@@ -71,11 +52,11 @@ services:
     container_name: worker3
     environment:
       - WORKER_PORT=8003
-    ports:
-      - "8003:8003"
-      - "9003:9003"
+      - WORKER_ID=worker3
+    networks:
+      - default
     depends_on:
-      - producer
+      - loki
     restart: always
 
   producer:
@@ -83,6 +64,42 @@ services:
       context: .
       dockerfile: Dockerfile.producer
     container_name: producer
+    networks:
+      - default
     depends_on:
-      - rabbit
+      - loki
     restart: always
+
+  loki:
+    image: grafana/loki:3.0.0
+    container_name: loki
+    volumes:
+      - ./configs/loki-config.yaml:/mnt/config/loki-config.yaml
+      - ./data:/loki
+    ports:
+      - "3100:3100"
+    command: -config.file=/mnt/config/loki-config.yaml
+
+  promtail:
+    image: grafana/promtail:3.0.0
+    container_name: promtail
+    volumes:
+      - ./configs/promtail-config.yaml:/mnt/config/promtail-config.yaml
+      - /var/log:/var/log
+    depends_on:
+      - loki
+    command: -config.file=/mnt/config/promtail-config.yaml
+
+  grafana:
+    image: grafana/grafana:10.0.0
+    container_name: grafana
+    volumes:
+      - ./grafana-data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+    depends_on:
+      - loki
+  

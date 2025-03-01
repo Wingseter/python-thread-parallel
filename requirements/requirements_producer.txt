@@ -1,3 +1,4 @@
 pika
 uuid
 pymongo
+requests

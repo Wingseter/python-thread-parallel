@@ -1,4 +1,4 @@
 pika
 uuid
-prometheus_client
 pymongo
+requests                   
