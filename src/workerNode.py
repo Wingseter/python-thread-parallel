@@ -16,6 +16,10 @@ collection = connect_db()
 # Remote Control 변수 
 error_num = 0
 
+# 처리량 측정을 위한 변수
+total_messages_processed = 0
+start_time = time.time()
+
 # 테스트를 위한 소켓 서버
 def socket_server():
     global error_num
@@ -72,7 +76,8 @@ def task(message):
 
 # RabbitMQ 메시지 처리
 def process_message(ch, method, properties, body):
-    global error_num
+    global error_num, total_messages_processed, start_time
+    
     message_data = json.loads(body.decode())
 
     task_id = message_data["task_id"]
@@ -113,7 +118,12 @@ def process_message(ch, method, properties, body):
             os.kill(os.getpid(), signal.SIGSEGV)
 
         ch.basic_ack(delivery_tag=method.delivery_tag)
-        log("info", f"{message} processed to {uppercase_message} successfully")
+
+        total_messages_processed += 1
+        elapsed_time = time.time() - start_time
+        messages_per_second = total_messages_processed / elapsed_time if elapsed_time > 0 else 0
+
+        log("info", f"[Worker {get_workerID()}] Processed {total_messages_processed} messages | {messages_per_second:.2f} msg/sec")
 
     except Exception as e:
         log("error", f"Error {task_id}: {e}")
