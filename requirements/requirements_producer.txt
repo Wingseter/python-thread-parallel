@@ -2,3 +2,4 @@ pika
 uuid
 pymongo
 requests
+redis          

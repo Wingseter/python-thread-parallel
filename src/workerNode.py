@@ -3,7 +3,7 @@ import time
 import json
 import random
 import os
-from connectService import create_rabbit_channel, connect_db
+from connectService import create_rabbit_channel, connect_db, is_task_processed, mark_task_processed
 from logger import log, get_workerID, get_workerPort
 
 # MongoDB 연결
@@ -14,6 +14,7 @@ def task(message):
     result = [''] * len(message)
     error_flag = threading.Event()
 
+    # 합쳐도 되지만 멀티쓰레드를 설명하기 위해 따로 함수로 분리
     def uppercase_char(char):
         return char.upper()
 
@@ -42,36 +43,42 @@ def task(message):
 # RabbitMQ 메시지 처리
 def process_message(ch, method, properties, body):
     message_data = json.loads(body.decode())
+
     task_id = message_data["task_id"]
     message = message_data["message"]
 
-    if collection.find_one({"task_id": task_id}):
-        log("info", f"Task ID: {task_id} already processed")
+    log("info", f"Processing: {message}, Task ID: {task_id}")
+
+    if is_task_processed(task_id):
+        log("info", f"Task ID: {task_id} already processed (Redis Cache)")
         ch.basic_ack(delivery_tag=method.delivery_tag)
         return
+    
+    # Redis 대신 MongoDB 사용하려면 아래 주석 해제
+    # if collection.find_one({"task_id": task_id}):
+    #     log("info", f"Task ID: {task_id} already processed")
+    #     ch.basic_ack(delivery_tag=method.delivery_tag)
+    #     return
 
-    error_num = random.randint(1, 20)
+    error_num = random.randint(1, 20) # 오류를 시뮬레이션 하기 위한 렌덤 값
 
     try:
-        log("info", f"Processing: {message}, Task ID: {task_id}")
-
         if error_num == 1:
-            log("error", "에러상황1: 작업 중 에러 발생 (ACK 없이 재시도)")
-            raise Exception("에러상황1: 들어온 정보에 작업 중에 에러가 발생한 상황")
+            raise Exception(f"에러상황1: 들어온 {message} 에 작업 중에 에러가 발생한 상황(ACK 없이 재시도)")
 
         uppercase_message = task(message)
 
         collection.insert_one({"task_id": task_id, "message": uppercase_message, "status": "Success"})
+        mark_task_processed(task_id)
 
         if error_num == 2:
-            log("error", "에러상황2: 작업 완료 후 ACK 누락 가능성")
-            raise Exception("에러상황2: 작업 완료 했는데 노드가 불안정해서 중복이 발생할 수 있는 상황")
+            raise Exception(f"에러상황2: 작업 완료 했는데 노드가 불안정해서 {message} 중복이 발생할 수 있는 상황")
 
         ch.basic_ack(delivery_tag=method.delivery_tag)
-        log("info", f"Task {task_id} processed successfully")
+        log("info", f"{message} processed successfully")
 
     except Exception as e:
-        log("error", f"Error processing task {task_id}: {e}")
+        log("error", f"Error {task_id}: {e}")
         ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
 
     time.sleep(0.5)

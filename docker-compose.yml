@@ -25,6 +25,8 @@ services:
     environment:
       - WORKER_PORT=8001
       - WORKER_ID=worker1
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
     networks:
       - default
     depends_on:
@@ -39,6 +41,8 @@ services:
     environment:
       - WORKER_PORT=8002
       - WORKER_ID=worker2
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
     networks:
       - default
     depends_on:
@@ -53,6 +57,8 @@ services:
     environment:
       - WORKER_PORT=8003
       - WORKER_ID=worker3
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
     networks:
       - default
     depends_on:
@@ -64,6 +70,9 @@ services:
       context: .
       dockerfile: Dockerfile.producer
     container_name: producer
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
     networks:
       - default
     depends_on:
@@ -103,3 +112,13 @@ services:
     depends_on:
       - loki
   
+  redis:
+    image: redis:7.0
+    container_name: redis
+    ports:
+      - "6379:6379"
+    command: redis-server --save 60 1 --loglevel warning
+    volumes:
+      - ./configs/redis.conf:/usr/local/etc/redis/redis.conf 
+      - ./redis-data:/data
+    restart: always

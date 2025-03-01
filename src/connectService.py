@@ -2,6 +2,21 @@ import pika
 import time
 import pymongo
 import requests
+import os
+import redis
+
+REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
+REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
+
+redis_client = redis.StrictRedis(host=REDIS_HOST, port=REDIS_PORT, db=0, decode_responses=True)
+
+# 작업이 완료된 task_id를 Redis에서 확인
+def is_task_processed(task_id):
+    return redis_client.exists(f"task:{task_id}")
+
+# 작업 완료된 task_id를 Redis에 저장 (최대 1시간)
+def mark_task_processed(task_id):
+    redis_client.setex(f"task:{task_id}", 3600, "1")  
 
 def create_rabbit_channel():
     print("Waiting for RabbitMQ Connection...")

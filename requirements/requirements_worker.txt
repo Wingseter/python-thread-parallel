@@ -1,4 +1,5 @@
 pika
 uuid
 pymongo
-requests                   
+requests     
+redis              
