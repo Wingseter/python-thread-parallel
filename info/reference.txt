@@ -27,3 +27,5 @@ https://www.youtube.com/watch?v=h_GGd7HfKQ8
 https://github.com/grafana/helm-charts/issues/3017
 
 https://github.com/grafana/loki/issues/7614
+
+https://docs.techdox.nz/loki/

@@ -3,49 +3,11 @@ import time
 import json
 import random
 import os
-import requests
-from connectService import create_channel, connect_db
-from lokiHandler import LokiHandler
-import logging
-
-# 환경 변수
-WORKER_ID = os.getenv("WORKER_ID", "default")
-WORKER_PORT = os.getenv("WORKER_PORT", "8001")  
-LOKI_URL = "http://loki:3100/loki/api/v1/push"
+from connectService import create_rabbit_channel, connect_db
+from logger import log, get_workerID, get_workerPort
 
 # MongoDB 연결
 collection = connect_db()
-
-# Logging 설정
-logger = logging.getLogger(f"worker_{WORKER_PORT}")
-logger.setLevel(logging.INFO)
-
-# Loki 핸들러 추가
-loki_handler = LokiHandler(
-    url=LOKI_URL,
-    labels={"job": "worker", "worker_id": WORKER_ID, "port": WORKER_PORT}
-)
-formatter = logging.Formatter("[%(asctime)s] %(levelname)s - %(message)s")
-loki_handler.setFormatter(formatter)
-logger.addHandler(loki_handler)
-
-# 콘솔 출력 핸들러 추가
-console_handler = logging.StreamHandler()
-console_handler.setFormatter(formatter)
-logger.addHandler(console_handler)
-
-# 로그 출력 함수 
-def log(level, message):
-    formatted_message = f"[Worker {WORKER_PORT}] {message}"
-    
-    if level == "info":
-        logger.info(formatted_message)
-    elif level == "error":
-        logger.error(formatted_message)
-    elif level == "warning":
-        logger.warning(formatted_message)
-    else:
-        logger.debug(formatted_message)
 
 # 메시지 처리 함수
 def task(message):
@@ -115,15 +77,13 @@ def process_message(ch, method, properties, body):
     time.sleep(0.5)
 
 # RabbitMQ Worker
-def worker(worker_port):
-    connection, channel = create_channel()
+def worker():
+    connection, channel = create_rabbit_channel()
     channel.basic_consume(queue='task_queue', on_message_callback=process_message)
     
-    log("info", f"Worker started on port {worker_port}")
+    log("info", f"{get_workerID()} started on port {get_workerPort()}")
 
     channel.start_consuming()
 
 if __name__ == "__main__":
-    worker_port = int(WORKER_PORT)
-    log("info", f"Worker Port: {worker_port}")
-    worker(worker_port)
+    worker()

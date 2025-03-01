@@ -2,9 +2,9 @@ import pika
 import time
 import json
 import uuid
-from connectService import create_channel
+from connectService import create_rabbit_channel
 
-connection, channel = create_channel()
+connection, channel = create_rabbit_channel()
 
 # 메시지 전송
 def send_messages(num_messages=10):

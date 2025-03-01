@@ -8,6 +8,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY src/workerNode.py .
 COPY src/connectService.py .
 COPY src/lokiHandler.py .
+COPY src/logger.py .
 
 EXPOSE 8001 8002 8003
 
