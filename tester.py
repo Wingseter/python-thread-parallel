@@ -5,6 +5,7 @@ port_options = {"worker_1": 9001, "worker_2": 9002, "worker_3": 9003}
 
 # 미리 정의된 테스트 목록
 test_options = {
+    0: "정상 상황: 에러 없이 작업 완료",
     1: "에러 상황 1: 작업 중 에러 발생 (ACK 없이 재시도)",
     2: "에러 상황 2: 작업 시작 ~ 중간에 Worker 장애 발생 (노드 강제 종료)",
     3: "에러 상황 3: 작업 완료 후 노드 불안정 (메시지 중복 가능)",
@@ -43,9 +44,9 @@ if __name__ == "__main__":
         for key, description in test_options.items():
             print(f"{key}. {description}")
 
-        new_value = input("▶ 선택 (1-4): ").strip()
-        if new_value not in {"1", "2", "3", "4"}:
-            print("⚠️ 잘못된 입력입니다! 1, 2, 3, 4 중에서 선택하세요.")
+        new_value = input("▶ 선택 (0-4): ").strip()
+        if new_value not in {"0", "1", "2", "3", "4"}:
+            print("⚠️ 잘못된 입력입니다! 0, 1, 2, 3, 4 중에서 선택하세요.")
             continue
         
         new_value = int(new_value)

@@ -77,7 +77,7 @@ def task(message):
 # RabbitMQ 메시지 처리
 def process_message(ch, method, properties, body):
     global error_num, total_messages_processed, start_time
-    
+
     message_data = json.loads(body.decode())
 
     task_id = message_data["task_id"]
@@ -129,7 +129,6 @@ def process_message(ch, method, properties, body):
         log("error", f"Error {task_id}: {e}")
         ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
 
-    error_num = 0
     time.sleep(0.5)
 
 # RabbitMQ Worker
