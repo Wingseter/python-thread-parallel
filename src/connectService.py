@@ -1,9 +1,10 @@
 import pika
 import time
+import pika.exceptions
 import pymongo
 import os
 import redis
-import socket
+from timeoutBlockingConnection import TimeoutBlockingConnection
 
 # 환경 변수 로드 
 REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
@@ -35,13 +36,6 @@ def is_task_processed(task_id):
 def mark_task_processed(task_id):
     redis_client.setex(f"task:{task_id}", 3600, "1")
 
-def is_port_open(host, port, timeout=5):
-    try:
-        with socket.create_connection((host, port), timeout=timeout):
-            return True
-    except (socket.timeout, ConnectionRefusedError):
-        return False
-
 # RabbitMQ 채널 생성
 def create_rabbit_channel():
     global last_rabbit_connection
@@ -55,28 +49,29 @@ def create_rabbit_channel():
         (RABBIT_HOST1, RABBIT_PORT1),
         (RABBIT_HOST2, RABBIT_PORT2),
         (RABBIT_HOST3, RABBIT_PORT3),
-    ]   
-    
+    ]
+
     for attempt in range(10):  # 최대 10번 재시도
-        for i in range(3):
-            # 마지막으로 연결된 노드 기억 및 연결 시도
-            index = (last_rabbit_connection + i) % 3
+        for i in range(len(rabbitmq_hosts)):  # 모든 RabbitMQ 노드를 순환하며 시도
+            index = (last_rabbit_connection + i) % len(rabbitmq_hosts)
             host, port = rabbitmq_hosts[index]
 
+            print(f"Trying to connect to RabbitMQ at {host}:{port} (Attempt {attempt+1}/10) [Node Index: {index}]")
+
             try:
-                # 연결 가능 여부 확인
-                print(f"Trying to connect to RabbitMQ at {host}:{port} (Attempt {attempt+1}/10)")
-                if not is_port_open(host, port, timeout=5):
-                    raise Exception(f"RABBITMQ {port} is not open")
-                else:
-                    last_rabbit_connection = index
-                
                 # 연결 시도
-                connection = pika.BlockingConnection(pika.ConnectionParameters(host, port=port, credentials=credentials, socket_timeout=5))
+                connection = TimeoutBlockingConnection(
+                    pika.ConnectionParameters(
+                        host, port=port, credentials=credentials,
+                        connection_attempts=1, socket_timeout=5, stack_timeout=5, heartbeat= 5
+                    ),
+                    timeout=5
+                )
                 channel = connection.channel()
-        
-                channel.exchange_declare(exchange="dlx_exchange", exchange_type="direct", durable=True)  # DLX
-                channel.queue_declare(queue="dead_letter_queue", durable=True)  # DLQ
+
+                # DLX 설정
+                channel.exchange_declare(exchange="dlx_exchange", exchange_type="direct", durable=True)
+                channel.queue_declare(queue="dead_letter_queue", durable=True)
                 channel.queue_bind(queue="dead_letter_queue", exchange="dlx_exchange", routing_key="dlx_routing_key")
 
                 # 작업 큐 선언 (TTL: 5초, DLX 적용)
@@ -89,14 +84,20 @@ def create_rabbit_channel():
                 channel.queue_declare(queue="task_queue", durable=True, arguments=arguments)
                 channel.basic_qos(prefetch_count=1)
 
+                # ✅ 연결 성공 시 last_rabbit_connection 업데이트
+                last_rabbit_connection = index
+                print(f"Successfully connected to RabbitMQ at {host}:{port}. Updating last_rabbit_connection to {index}")
                 return connection, channel
 
-            except (pika.exceptions.AMQPConnectionError, pika.exceptions.AMQPChannelError) as e:
-                print("RabbitMQ connection failed, RETRYING")
-                time.sleep(2)  # 2초 후 재시도
+            except (pika.exceptions.AMQPConnectionError, pika.exceptions.AMQPChannelError, pika.exceptions.ConnectionBlockedTimeout) as e:
+                print(f"RabbitMQ connection failed at {host}:{port}, retrying... ({e})")
             except Exception as e:
-                print(f"RabbitMQ connection failed: {e}")
-                time.sleep(2) # 2초 후 재시도
+                print(f"Unexpected RabbitMQ error at {host}:{port}: {e}")
+
+            time.sleep(2)
+
+    raise Exception("All RabbitMQ connection attempts failed.")
+
             
 
 # MongoDB 연결
