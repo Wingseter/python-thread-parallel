@@ -6,15 +6,74 @@ services:
       - "27017:27017"
     restart: always
 
-  rabbit:
+  rabbitmq1:
     image: rabbitmq:3-management
-    container_name: rabbit
+    container_name: rabbitmq1
+    hostname: rabbitmq1
     ports:
       - "5672:5672"
       - "15672:15672"
     environment:
+      - RABBITMQ_ERLANG_COOKIE=mysupersecretcookie
       - RABBITMQ_DEFAULT_USER=test
       - RABBITMQ_DEFAULT_PASS=test
+    volumes:
+      - rabbitmq1_data:/var/lib/rabbitmq
+    restart: always
+    command: >
+      /bin/sh -c "
+      rabbitmq-server -detached;
+      sleep 5;
+      rabbitmqctl set_policy ha-all '.*' '{\"ha-mode\":\"all\",\"ha-sync-mode\":\"automatic\"}';
+      tail -f /dev/null"
+
+
+  rabbitmq2:
+    image: rabbitmq:3-management
+    container_name: rabbitmq2
+    hostname: rabbitmq2
+    environment:
+      - RABBITMQ_ERLANG_COOKIE=mysupersecretcookie
+      - RABBITMQ_DEFAULT_USER=test
+      - RABBITMQ_DEFAULT_PASS=test
+    depends_on:
+      - rabbitmq1
+    command: >
+      /bin/sh -c "rabbitmq-server -detached;
+                  sleep 5;
+                  rabbitmqctl stop_app;
+                  rabbitmqctl join_cluster rabbit@rabbitmq1;
+                  rabbitmqctl start_app;
+                  tail -f /dev/null"
+    ports:
+      - "5673:5672"   
+      - "15673:15672"
+    volumes:
+      - rabbitmq2_data:/var/lib/rabbitmq
+    restart: always
+
+  rabbitmq3:
+    image: rabbitmq:3-management
+    container_name: rabbitmq3
+    hostname: rabbitmq3
+    environment:
+      - RABBITMQ_ERLANG_COOKIE=mysupersecretcookie
+      - RABBITMQ_DEFAULT_USER=admin
+      - RABBITMQ_DEFAULT_PASS=admin
+    depends_on:
+      - rabbitmq1
+    command: >
+      /bin/sh -c "rabbitmq-server -detached;
+                  sleep 5;
+                  rabbitmqctl stop_app;
+                  rabbitmqctl join_cluster rabbit@rabbitmq1;
+                  rabbitmqctl start_app;
+                  tail -f /dev/null"
+    ports:
+      - "5674:5672"   
+      - "15674:15672"   
+    volumes:
+      - rabbitmq3_data:/var/lib/rabbitmq
     restart: always
 
   worker1:
@@ -23,15 +82,19 @@ services:
       dockerfile: Dockerfile.worker
     container_name: worker1
     environment:
+      - RABBIT_HOST1=rabbitmq1
+      - RABBIT_HOST2=rabbitmq2
+      - RABBIT_HOST3=rabbitmq3
+      - RABBIT_PORT1=5672
+      - RABBIT_PORT2=5672
+      - RABBIT_PORT3=5672
+      - MONGO_HOST=db
+      - MONGO_PORT=27017
       - WORKER_PORT=8001
       - WORKER_ID=worker1
       - REMOTE_PORT=9001
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - MONGO_HOST=db
-      - MONGO_PORT=27017
-      - RABBIT_HOST=rabbit
-      - RABBIT_PORT=5672
       - RABBITMQ_USER=test
       - RABBITMQ_PASS=test
       - LOKI_URL=http://loki:3100/loki/api/v1/push
@@ -56,8 +119,12 @@ services:
       - REDIS_PORT=6379
       - MONGO_HOST=db
       - MONGO_PORT=27017
-      - RABBIT_HOST=rabbit
-      - RABBIT_PORT=5672
+      - RABBIT_HOST1=rabbitmq1
+      - RABBIT_HOST2=rabbitmq2
+      - RABBIT_HOST3=rabbitmq3
+      - RABBIT_PORT1=5672
+      - RABBIT_PORT2=5672
+      - RABBIT_PORT3=5672
       - RABBITMQ_USER=test
       - RABBITMQ_PASS=test
       - LOKI_URL=http://loki:3100/loki/api/v1/push
@@ -82,8 +149,12 @@ services:
       - REDIS_PORT=6379
       - MONGO_HOST=db
       - MONGO_PORT=27017
-      - RABBIT_HOST=rabbit
-      - RABBIT_PORT=5672
+      - RABBIT_HOST1=rabbitmq1
+      - RABBIT_HOST2=rabbitmq2
+      - RABBIT_HOST3=rabbitmq3
+      - RABBIT_PORT1=5672
+      - RABBIT_PORT2=5672
+      - RABBIT_PORT3=5672
       - RABBITMQ_USER=test
       - RABBITMQ_PASS=test
       - LOKI_URL=http://loki:3100/loki/api/v1/push
@@ -103,6 +174,12 @@ services:
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      - RABBIT_HOST1=rabbitmq1
+      - RABBIT_HOST2=rabbitmq2
+      - RABBIT_HOST3=rabbitmq3
+      - RABBIT_PORT1=5672
+      - RABBIT_PORT2=5672
+      - RABBIT_PORT3=5672
     networks:
       - default
     depends_on:
@@ -153,3 +230,8 @@ services:
       - ./configs/redis.conf:/usr/local/etc/redis/redis.conf 
       - ./redis-data:/data
     restart: always
+    
+volumes:
+  rabbitmq1_data:
+  rabbitmq2_data:
+  rabbitmq3_data:

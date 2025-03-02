@@ -1,7 +1,7 @@
 import threading
 import time
 import json
-import random
+import pika
 import os
 import signal
 import socket
@@ -47,7 +47,7 @@ def task(message):
     result = [''] * len(message)
     error_flag = threading.Event()
 
-    # 합쳐도 되지만 멀티쓰레드를 설명하기 위해 따로 함수로 분리
+    # 합쳐도 되지만 멀티쓰레드를 표현하기 위해 따로 함수로 분리
     def uppercase_char(char):
         return char.upper()
 
@@ -133,12 +133,22 @@ def process_message(ch, method, properties, body):
 
 # RabbitMQ Worker
 def worker():
-    connection, channel = create_rabbit_channel()
-    channel.basic_consume(queue='task_queue', on_message_callback=process_message)
-    
-    log("info", f"{get_workerID()} started on port {get_workerPort()}")
+    while True:
+        try:
+            connection, channel = create_rabbit_channel()
+            channel.basic_consume(queue='task_queue', on_message_callback=process_message)
+                        
+            log("info", f"{get_workerID()} started on port {get_workerPort()}")
 
-    channel.start_consuming()
+            channel.start_consuming()
+
+        except pika.exceptions.AMQPConnectionError:
+            log("error", "RabbitMQ connection failed. Connect another...")
+            time.sleep(5)
+        except Exception as e:
+            log("error", f"RabbitMQ connection failed: {e}")
+            time.sleep(5)
+
 
 if __name__ == "__main__":
     # 소켓 서버 실행 (에러 값을 변경할 수 있도록)

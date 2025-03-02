@@ -4,7 +4,6 @@ import json
 import uuid
 from connectService import create_rabbit_channel
 
-connection, channel = create_rabbit_channel()
 
 # 메시지 전송
 def send_messages(num_messages=10):
@@ -12,10 +11,11 @@ def send_messages(num_messages=10):
         task_id = str(uuid.uuid4())
         message = f"Message {i}"
         status = "Not Processed"
-
         message_body = json.dumps({"task_id": task_id, "status": status, "message": message})
         
         try:
+            connection, channel = create_rabbit_channel()
+
             channel.basic_publish(
                 exchange='',
                 routing_key='task_queue',
@@ -26,8 +26,13 @@ def send_messages(num_messages=10):
             )
 
             print(f"Sent: {message_body}")
+            connection.close()
+        except pika.exceptions.AMQPConnectionError:
+            print("error RabbitMQ connection failed. Retrying...")
+            time.sleep(5)
         except Exception as e:
             print(f"Send message failed {message}: {e}")
+            time.sleep(5)
 
         time.sleep(0.5)  
 
@@ -35,4 +40,4 @@ def send_messages(num_messages=10):
     connection.close()
 
 if __name__ == "__main__":
-    send_messages(num_messages=987654321)
+    send_messages(num_messages=987654321) # 아주 큰 숫자의 메시지를 계속 전송

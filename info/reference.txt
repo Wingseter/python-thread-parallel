@@ -35,3 +35,5 @@ https://jhyonhyon.tistory.com/76
 https://stackoverflow.com/questions/75420212/how-to-pass-erlang-cookie-in-docker-run-after-rabbitmq-erlang-cookie-got-depri
 
 https://mythpoy.tistory.com/50
+
+https://pika.readthedocs.io/en/stable/modules/adapters/blocking.html
