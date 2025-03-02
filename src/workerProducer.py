@@ -47,4 +47,4 @@ def send_messages(num_messages=10):
     connection.close()
 
 if __name__ == "__main__":
-    send_messages(num_messages=987654321) # 아주 큰 숫자의 메시지를 계속 전송
+    send_messages(num_messages=987654321) # 메시지를 계속 전송
