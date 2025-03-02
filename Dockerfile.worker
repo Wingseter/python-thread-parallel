@@ -5,7 +5,7 @@ RUN apt-get update && apt-get install -y tini && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-COPY requirements/requirements_worker.txt ./requirements.txt
+COPY requirements/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY src/workerNode.py .

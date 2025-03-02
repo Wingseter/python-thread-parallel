@@ -1,7 +1,9 @@
-import pika
 import time
 import json
 import uuid
+
+import pika
+
 from connectService import create_rabbit_channel
 
 

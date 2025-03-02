@@ -1,4 +1,5 @@
-import pika, threading
+import pika
+import threading
 
 # 타임아웃을 추가한 BlockingConnection
 class TimeoutBlockingConnection(pika.BlockingConnection):

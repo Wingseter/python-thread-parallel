@@ -33,3 +33,6 @@ def get_worker_port():
 
 def get_loki_url():
     return os.getenv("LOKI_URL", "http://localhost:3100/loki/api/v1/push")
+
+def get_remote_port():
+    return int(os.getenv("REMOTE_PORT", "9999")) 

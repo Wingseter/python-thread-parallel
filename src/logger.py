@@ -1,7 +1,7 @@
 import logging
-import os
-from lokiHandler import LokiHandler
+
 import config
+from lokiHandler import LokiHandler
 
 # 로거 설정 함수
 def setup_logger():
@@ -11,7 +11,10 @@ def setup_logger():
     # Loki 핸들러 추가
     loki_handler = LokiHandler(
         url=config.get_loki_url(),
-        labels={"job": "workers", "worker_id": config.get_worker_id(), "port": config.get_worker_port()}
+        labels={"job": "workers", 
+                "worker_id": config.get_worker_id(),
+                "port": config.get_worker_port()
+        }
     )
 
     # 로키 출력 헨들러 추가

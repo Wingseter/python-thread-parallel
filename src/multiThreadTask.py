@@ -1,4 +1,5 @@
 import threading 
+
 from logger import log
 
 # 메시지를 처리하는 테스크 함수 예시로 대문자로 바꾸는 것을 thread로 처리 
@@ -18,7 +19,11 @@ def task(message):
             error_flag.set()
 
     # 멀티 쓰레드 배열
-    threads = [threading.Thread(target=thread_task, args=(char, result, index)) for index, char in enumerate(message)]
+    threads = [
+        threading.Thread(
+            target=thread_task, 
+            args=(char, result, index)) 
+            for index, char in enumerate(message)]
 
     for thread in threads:
         thread.start()
@@ -27,7 +32,7 @@ def task(message):
 
     # 쓰레드 중 하나라도 에러가 발생하면 에러 처리
     if error_flag.is_set():
-        raise Exception("에러상황5: 강화된 멀티 쓰레드 에러 처리")
+        raise Exception("에러 사항5: 강화된 멀티 쓰레드 에러 처리")
 
     uppercased_message = ''.join(result)
 

@@ -1,17 +1,24 @@
-import pika
 import time
+
+import pika
 import pika.exceptions
 import pymongo
-import os
 import redis
+
 from timeoutBlockingConnection import TimeoutBlockingConnection
 import config
+
 
 # RabbitMQ 마지막 연결
 last_rabbit_connection = 0 # option: 0, 1, 2
 
 # Redis 클라이언트 설정
-redis_client = redis.StrictRedis(host=config.get_redis_host(), port=config.get_redis_port(), db=0, decode_responses=True)
+redis_client = redis.StrictRedis(
+    host=config.get_redis_host(), 
+    port=config.get_redis_port(), 
+    db=0, 
+    decode_responses=True
+)
 
 # 작업이 완료된 task_id를 Redis에서 확인
 def is_task_processed(task_id):
@@ -51,22 +58,14 @@ def create_rabbit_channel():
                 channel = connection.channel()
 
                 # DLX 설정
-                channel.exchange_declare(exchange="dlx_exchange", exchange_type="direct", durable=True)
-                channel.queue_declare(queue="dead_letter_queue", durable=True)
-                channel.queue_bind(queue="dead_letter_queue", exchange="dlx_exchange", routing_key="dlx_routing_key")
+                setup_dead_letter_exchange(channel)
 
-                # 작업 큐 선언 (TTL: 5초, DLX 적용)
-                ttl = 5000  
-                arguments = {
-                    "x-message-ttl": ttl,
-                    "x-dead-letter-exchange": "dlx_exchange",
-                    "x-dead-letter-routing-key": "dlx_routing_key",
-                }
-                channel.queue_declare(queue="task_queue", durable=True, arguments=arguments)
-                channel.basic_qos(prefetch_count=1)
+                # 작업 큐 설정
+                setup_task_queue(channel)
 
                 # 연결 성공 시 last_rabbit_connection 업데이트
                 last_rabbit_connection = index
+
                 print(f"Successfully connected to RabbitMQ at {host}:{port}. Updating last_rabbit_connection to {index}")
                 return connection, channel
 
@@ -79,10 +78,33 @@ def create_rabbit_channel():
 
     raise Exception("Runtime Error: All RabbitMQ connection attempts failed.")
 
+# DLX 설정
+def setup_dead_letter_exchange(channel):
+    channel.exchange_declare(exchange="dlx_exchange", exchange_type="direct", durable=True)
+    channel.queue_declare(queue="dead_letter_queue", durable=True)
+    channel.queue_bind(queue="dead_letter_queue", exchange="dlx_exchange", routing_key="dlx_routing_key")
+
+# 작업 큐 설정
+def setup_task_queue(channel):
+    # 작업 큐 선언 (TTL: 5초, DLX 적용)
+    ttl = 5000  
+    arguments = {
+        "x-message-ttl": ttl,
+        "x-dead-letter-exchange": "dlx_exchange",
+        "x-dead-letter-routing-key": "dlx_routing_key",
+    }
+    channel.queue_declare(queue="task_queue", durable=True, arguments=arguments)
+    channel.basic_qos(prefetch_count=1)
+
 
 # MongoDB 연결
 def connect_db():
-    mongo_client = pymongo.MongoClient(f"mongodb://{config.get_mongo_host()}:{config.get_mongo_port()}/")
-    db = mongo_client["test_db"]
-    collection = db["processed_tasks"]
-    return collection
+    try:
+        mongo_client = pymongo.MongoClient(
+            f"mongodb://{config.get_mongo_host()}:{config.get_mongo_port()}/"
+        )
+        db = mongo_client["test_db"]
+        collection = db["processed_tasks"]
+        return collection
+    except Exception as e:
+        print(f"Runtime Error: Failed to connect to MongoDB")

@@ -1,16 +1,15 @@
-import threading
-import time
-import json
-import pika
 import os
+import json
+import time
 import signal
 import socket
+import threading
+import pika
+
+import config
 from connectService import create_rabbit_channel, connect_db, is_task_processed, mark_task_processed
 from logger import log
 from multiThreadTask import task
-import config
-
-REMOTE_PORT = int(os.getenv("REMOTE_PORT", "9999")) 
 
 # MongoDB 연결
 collection = connect_db()
@@ -26,10 +25,10 @@ start_time = time.time()
 def socket_server():
     global error_num
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server.bind(("0.0.0.0", REMOTE_PORT))  
+    server.bind(("0.0.0.0", config.get_remote_port()))  
     server.listen(1)
 
-    log("info", f"Socket Server started on port {REMOTE_PORT}. Waiting for commands...")
+    log("info", f"Socket Server started on port {config.get_remote_port()}. Waiting for commands...")
 
     # 계속해서 돌아가며 에러 리모트 컨트롤 실행
     while True:
@@ -66,7 +65,7 @@ def process_message(ch, method, properties, body):
     try:
         # 예외 상황 1, 2 
         if error_num == 1:
-            raise Exception(f"에러 상황1: 들어온 {message} 에 작업 중에 에러가 발생한 상황(ACK 없이 재시도)")
+            raise Exception(f"에러 상황: 들어온 {message} 에 작업 중에 에러가 발생한 상황(ACK 없이 재시도)")
         if error_num == 2:
             log("error", "에러 발생(작업 시작 ~ 중간) 노드 죽음")
             time.sleep(1)
@@ -81,7 +80,7 @@ def process_message(ch, method, properties, body):
 
         # 예외 상황 3, 4
         if error_num == 3:
-            raise Exception(f"에러상황2: 작업 완료 했는데 노드가 불안정해서 {message} 중복이 발생할 수 있는 상황")
+            raise Exception(f"에러 상황: 작업 완료 했는데 노드가 불안정해서 {message} 중복이 발생할 수 있는 상황")
         if error_num == 4:
             log("error", "에러 발생(작업 이후) 노드 죽음")
             time.sleep(1)
