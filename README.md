@@ -41,6 +41,8 @@
 1. **도커 설치**
 2. 다음 명령어 실행:
    ```sh
+   git clone https://github.com/Wingseter/python-thread-parallel
+   cd python-thread-parallel
    docker compose up --build -d
    ```
 
