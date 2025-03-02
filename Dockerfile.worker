@@ -14,7 +14,7 @@ COPY src/lokiHandler.py .
 COPY src/logger.py .
 COPY src/timeoutBlockingConnection.py .
 COPY src/multiThreadTask.py .
-
+COPY src/config.py .
 
 
 EXPOSE 8001 8002 8003

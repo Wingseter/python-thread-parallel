@@ -6,8 +6,9 @@ import os
 import signal
 import socket
 from connectService import create_rabbit_channel, connect_db, is_task_processed, mark_task_processed
-from logger import log, get_workerID, get_workerPort
+from logger import log
 from multiThreadTask import task
+import config
 
 REMOTE_PORT = int(os.getenv("REMOTE_PORT", "9999")) 
 
@@ -94,7 +95,7 @@ def process_message(ch, method, properties, body):
         elapsed_time = time.time() - start_time
         messages_per_second = total_messages_processed / elapsed_time if elapsed_time > 0 else 0
 
-        log("info", f"[Worker {get_workerID()}] Processed {total_messages_processed} messages | {messages_per_second:.2f} msg/sec")
+        log("info", f"[Worker {config.get_worker_id()}] Processed {total_messages_processed} messages | {messages_per_second:.2f} msg/sec")
 
     except Exception as e:
         log("error", f"Error {task_id}: {e}")
@@ -106,10 +107,10 @@ def process_message(ch, method, properties, body):
 def worker():
     while True:
         try:
-            connection, channel = create_rabbit_channel()
+            _, channel = create_rabbit_channel()
             channel.basic_consume(queue='task_queue', on_message_callback=process_message)
                         
-            log("info", f"{get_workerID()} started on port {get_workerPort()}")
+            log("info", f"{config.get_worker_id()} started on port {config.get_worker_port()}")
 
             channel.start_consuming()
 

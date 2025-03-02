@@ -5,28 +5,13 @@ import pymongo
 import os
 import redis
 from timeoutBlockingConnection import TimeoutBlockingConnection
-
-# 환경 변수 로드 
-REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
-REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
-
-MONGO_HOST = os.getenv("MONGO_HOST", "localhost")  
-MONGO_PORT = int(os.getenv("MONGO_PORT", 27017))
-
-RABBIT_HOST1 = os.getenv("RABBIT_HOST1", "localhost")  
-RABBIT_PORT1 = int(os.getenv("RABBIT_PORT1", 5672))
-RABBIT_HOST2 = os.getenv("RABBIT_HOST2", "localhost")  
-RABBIT_PORT2 = int(os.getenv("RABBIT_PORT2", 5673))
-RABBIT_HOST3 = os.getenv("RABBIT_HOST3", "localhost")  
-RABBIT_PORT3 = int(os.getenv("RABBIT_PORT3", 5674))
-RABBIT_USER = os.getenv("RABBITMQ_USER", "test")
-RABBIT_PASS = os.getenv("RABBITMQ_PASS", "test")
+import config
 
 # RabbitMQ 마지막 연결
 last_rabbit_connection = 0 # option: 0, 1, 2
 
 # Redis 클라이언트 설정
-redis_client = redis.StrictRedis(host=REDIS_HOST, port=REDIS_PORT, db=0, decode_responses=True)
+redis_client = redis.StrictRedis(host=config.get_redis_host(), port=config.get_redis_port(), db=0, decode_responses=True)
 
 # 작업이 완료된 task_id를 Redis에서 확인
 def is_task_processed(task_id):
@@ -42,14 +27,10 @@ def create_rabbit_channel():
 
     print("Waiting for RabbitMQ Connection...")
     
-    credentials = pika.PlainCredentials(RABBIT_USER, RABBIT_PASS)
+    credentials = pika.PlainCredentials(config.get_rabbit_user(), config.get_rabbit_pass())
     connection = None
 
-    rabbitmq_hosts = [
-        (RABBIT_HOST1, RABBIT_PORT1),
-        (RABBIT_HOST2, RABBIT_PORT2),
-        (RABBIT_HOST3, RABBIT_PORT3),
-    ]
+    rabbitmq_hosts = config.get_rabbit_hosts()
 
     for attempt in range(10):  # 최대 10번 재시도
         for i in range(len(rabbitmq_hosts)):  # 모든 RabbitMQ 노드를 순환하며 시도
@@ -84,7 +65,7 @@ def create_rabbit_channel():
                 channel.queue_declare(queue="task_queue", durable=True, arguments=arguments)
                 channel.basic_qos(prefetch_count=1)
 
-                # ✅ 연결 성공 시 last_rabbit_connection 업데이트
+                # 연결 성공 시 last_rabbit_connection 업데이트
                 last_rabbit_connection = index
                 print(f"Successfully connected to RabbitMQ at {host}:{port}. Updating last_rabbit_connection to {index}")
                 return connection, channel
@@ -96,13 +77,12 @@ def create_rabbit_channel():
 
             time.sleep(2)
 
-    raise Exception("All RabbitMQ connection attempts failed.")
+    raise Exception("Runtime Error: All RabbitMQ connection attempts failed.")
 
-            
 
 # MongoDB 연결
 def connect_db():
-    mongo_client = pymongo.MongoClient(f"mongodb://{MONGO_HOST}:{MONGO_PORT}/")
+    mongo_client = pymongo.MongoClient(f"mongodb://{config.get_mongo_host()}:{config.get_mongo_port()}/")
     db = mongo_client["test_db"]
     collection = db["processed_tasks"]
     return collection

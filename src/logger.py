@@ -1,30 +1,17 @@
 import logging
 import os
 from lokiHandler import LokiHandler
-
-# 환경 변수
-WORKER_ID = os.getenv("WORKER_ID", "default")
-WORKER_PORT = os.getenv("WORKER_PORT", "8001")
-LOKI_URL = os.getenv("LOKI_URL", "http://localhost:3100/loki/api/v1/push")
-
-def get_workerID():
-    return WORKER_ID
-
-def get_workerPort():
-    return WORKER_PORT
-
-def get_lokiURL():
-    return LOKI_URL
+import config
 
 # 로거 설정 함수
 def setup_logger():
-    logger = logging.getLogger(f"worker_{WORKER_PORT}")
+    logger = logging.getLogger(f"worker_{config.get_worker_id()}")
     logger.setLevel(logging.INFO)
 
     # Loki 핸들러 추가
     loki_handler = LokiHandler(
-        url=LOKI_URL,
-        labels={"job": "workers", "worker_id": WORKER_ID, "port": WORKER_PORT}
+        url=config.get_loki_url(),
+        labels={"job": "workers", "worker_id": config.get_worker_id(), "port": config.get_worker_port()}
     )
 
     # 로키 출력 헨들러 추가
@@ -44,7 +31,7 @@ logger = setup_logger()
 
 # 로그 출력 함수
 def log(level, message):
-    formatted_message = f"[Worker {WORKER_PORT}] {message}"
+    formatted_message = f"[Worker {config.get_worker_port()}] {message}"
     
     if level == "info":
         logger.info(formatted_message)

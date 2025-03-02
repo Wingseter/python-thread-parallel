@@ -11,5 +11,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY src/workerProducer.py .
 COPY src/connectService.py .
 COPY src/timeoutBlockingConnection.py .
+COPY src/config.py .
 
 CMD ["python", "workerProducer.py"]
