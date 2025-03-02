@@ -195,7 +195,8 @@ services:
     ports:
       - "3100:3100"
     command: -config.file=/mnt/config/loki-config.yaml
-
+    restart: always
+    
   promtail:
     image: grafana/promtail:3.0.0
     container_name: promtail
@@ -205,6 +206,7 @@ services:
     depends_on:
       - loki
     command: -config.file=/mnt/config/promtail-config.yaml
+    restart: always
 
   grafana:
     image: grafana/grafana:10.0.0
@@ -219,6 +221,7 @@ services:
       - GF_AUTH_ANONYMOUS_ENABLED=true
     depends_on:
       - loki
+    restart: always
   
   redis:
     image: redis:7.0
