@@ -2,3 +2,5 @@
 /grafana-data
 /data
 /redis-data
+/loki-data
+/mongo-data

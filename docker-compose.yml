@@ -5,6 +5,8 @@ services:
     ports:
       - "27017:27017"
     restart: always
+    volumes:
+      - ./mongo-data:/data/db 
 
   rabbitmq1:
     image: rabbitmq:3-management
@@ -191,7 +193,7 @@ services:
     container_name: loki
     volumes:
       - ./configs/loki-config.yaml:/mnt/config/loki-config.yaml
-      - ./data:/loki
+      - ./loki-data:/loki
     ports:
       - "3100:3100"
     command: -config.file=/mnt/config/loki-config.yaml
@@ -228,12 +230,9 @@ services:
     container_name: redis
     ports:
       - "6379:6379"
-    command: redis-server --save 60 1 --loglevel warning
-    volumes:
-      - ./configs/redis.conf:/usr/local/etc/redis/redis.conf 
-      - ./redis-data:/data
+    command: redis-server --save "" --appendonly no --maxmemory-policy allkeys-lru
     restart: always
-    
+
 volumes:
   rabbitmq1_data:
   rabbitmq2_data:
