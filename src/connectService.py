@@ -59,15 +59,19 @@ def create_rabbit_channel():
     
     for attempt in range(10):  # 최대 10번 재시도
         for i in range(3):
+            # 마지막으로 연결된 노드 기억 및 연결 시도
             index = (last_rabbit_connection + i) % 3
             host, port = rabbitmq_hosts[index]
+
             try:
+                # 연결 가능 여부 확인
                 print(f"Trying to connect to RabbitMQ at {host}:{port} (Attempt {attempt+1}/10)")
                 if not is_port_open(host, port, timeout=5):
                     raise Exception(f"RABBITMQ {port} is not open")
                 else:
                     last_rabbit_connection = index
                 
+                # 연결 시도
                 connection = pika.BlockingConnection(pika.ConnectionParameters(host, port=port, credentials=credentials, socket_timeout=5))
                 channel = connection.channel()
         
@@ -92,7 +96,7 @@ def create_rabbit_channel():
                 time.sleep(2)  # 2초 후 재시도
             except Exception as e:
                 print(f"RabbitMQ connection failed: {e}")
-                time.sleep(2)
+                time.sleep(2) # 2초 후 재시도
             
 
 # MongoDB 연결

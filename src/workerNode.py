@@ -29,6 +29,7 @@ def socket_server():
 
     log("info", f"Socket Server started on port {REMOTE_PORT}. Waiting for commands...")
 
+    # 계속해서 돌아가며 에러 리모트 컨트롤 실행
     while True:
         conn, addr = server.accept()
         data = conn.recv(1024).decode("utf-8").strip()
@@ -98,6 +99,7 @@ def process_message(ch, method, properties, body):
     #     return
 
     try:
+        # 예외 상황 1, 2 
         if error_num == 1:
             raise Exception(f"에러 상황1: 들어온 {message} 에 작업 중에 에러가 발생한 상황(ACK 없이 재시도)")
         if error_num == 2:
@@ -105,11 +107,14 @@ def process_message(ch, method, properties, body):
             time.sleep(1)
             os.kill(os.getpid(), signal.SIGSEGV) # 노드가 죽어서 다음 실행 못함
 
+        # 작업 처리
         uppercase_message = task(message)
 
+        # 결과 저장
         collection.insert_one({"task_id": task_id, "message": uppercase_message, "status": "Success"})
         mark_task_processed(task_id)
 
+        # 예외 상황 3, 4
         if error_num == 3:
             raise Exception(f"에러상황2: 작업 완료 했는데 노드가 불안정해서 {message} 중복이 발생할 수 있는 상황")
         if error_num == 4:
@@ -117,8 +122,10 @@ def process_message(ch, method, properties, body):
             time.sleep(1)
             os.kill(os.getpid(), signal.SIGSEGV)
 
+        # 메시지 처리 완료
         ch.basic_ack(delivery_tag=method.delivery_tag)
 
+        # 처리량 측정
         total_messages_processed += 1
         elapsed_time = time.time() - start_time
         messages_per_second = total_messages_processed / elapsed_time if elapsed_time > 0 else 0

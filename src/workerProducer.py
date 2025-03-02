@@ -8,12 +8,16 @@ from connectService import create_rabbit_channel
 # 메시지 전송
 def send_messages(num_messages=10):
     for i in range(1, num_messages + 1):
+        # 고유 ID 생성
         task_id = str(uuid.uuid4())
+
+        # 메시지 생성
         message = f"Message {i}"
         status = "Not Processed"
         message_body = json.dumps({"task_id": task_id, "status": status, "message": message})
         
         try:
+            # 새로운 RabbitMQ 연결
             connection, channel = create_rabbit_channel()
 
             channel.basic_publish(
@@ -36,6 +40,7 @@ def send_messages(num_messages=10):
 
         time.sleep(0.5)  
 
+    # 모든 메시지 전송 완료
     print("All Message Sent Successfully")
     connection.close()
 

@@ -26,6 +26,8 @@ def setup_logger():
         url=LOKI_URL,
         labels={"job": "workers", "worker_id": WORKER_ID, "port": WORKER_PORT}
     )
+
+    # 로키 출력 헨들러 추가
     formatter = logging.Formatter("[%(asctime)s] %(levelname)s - %(message)s")
     loki_handler.setFormatter(formatter)
     logger.addHandler(loki_handler)
