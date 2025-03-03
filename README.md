@@ -3,6 +3,9 @@
 ## 프로젝트 개요
 해당 프로젝트는 Multi-GPU 리소스를 효율적으로 사용하기 위한 안정적인 큐 시스템을 구축하는 것을 목표로 합니다. RabbitMQ를 활용한 작업 큐 시스템을 통해 분산 처리를 수행하며, Python의 threading을 활용하여 worker 노드에서 병렬로 작업을 처리합니다. 또한, MySQL를 활용해 작업 결과를 저장하고, Loki 및 Grafana를 통해 로그 모니터링 기능을 제공합니다.
 
+## 구조
+![System Visualization](https://github.com/Wingseter/python-thread-parallel/blob/main/img/visualization.png)
+
 ## 구현 내용
 - **Python 기반의 분산 큐 시스템**
 - **RabbitMQ 클러스터링과 미러링을 활용한 안정적 메시지 큐 시스템 구축**
