@@ -37,7 +37,7 @@
 - **Grafana를 통해 worker 노드의 상태를 확인하고 이상 상황을 감지**
 
 ## 프로그램 실행 방법
-1. **도커 설치**
+1. **Docker, Docker Compsoe 설치**
 2. 다음 명령어 실행:
    ```sh
    git clone https://github.com/Wingseter/python-thread-parallel
