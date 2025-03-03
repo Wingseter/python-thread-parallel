@@ -8,7 +8,7 @@ import pika
 
 import config
 from rabbitmqHandler import create_rabbit_channel
-from dbHandler import connect_db
+from dbHandler import connect_db, get_insert_task_sql
 from redisHandler import is_task_processed, mark_task_processed
 from logger import log
 from multiThreadTask import task
@@ -76,13 +76,13 @@ def process_message(ch, method, properties, body):
 
     log("info", f"Processing: {message}, Task ID: {task_id}")
 
-    # Redis를 사용해 중복 처리
-    if is_task_processed(task_id):
-        log("info", f"Task ID: {task_id} already processed (Redis Cache)")
-        ch.basic_ack(delivery_tag=method.delivery_tag)
-        return
-    
     try:
+        # Redis를 사용해 중복 처리
+        if is_task_processed(task_id):
+            log("info", f"Task ID: {task_id} already processed (Redis Cache)")
+            ch.basic_ack(delivery_tag=method.delivery_tag)
+            return
+
         # 작업 전 에러 테스트 
         error_test_before(error_num=error_num, message=message)
 
@@ -91,11 +91,7 @@ def process_message(ch, method, properties, body):
 
         # 결과 저장
         with db_conn.cursor() as cursor:
-            cursor.execute("""
-                INSERT INTO processed_tasks (task_id, message, status) 
-                VALUES (%s, %s, %s)
-                ON DUPLICATE KEY UPDATE status = VALUES(status);
-            """, (task_id, uppercase_message, "Success"))
+            cursor.execute(get_insert_task_sql(), (task_id, uppercase_message, "Success"))
         mark_task_processed(task_id)
 
         # 작업 후 에러 테스트 

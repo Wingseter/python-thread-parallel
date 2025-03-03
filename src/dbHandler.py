@@ -2,6 +2,22 @@ import pymysql
 import config
 from logger import log
 
+def get_create_table_sql():
+    return """
+            CREATE TABLE IF NOT EXISTS processed_tasks (
+                task_id VARCHAR(36) PRIMARY KEY,
+                message TEXT NOT NULL,
+                status VARCHAR(10) NOT NULL
+            );
+            """
+
+def get_insert_task_sql():
+    return  """
+                INSERT INTO processed_tasks (task_id, message, status) 
+                VALUES (%s, %s, %s)
+                ON DUPLICATE KEY UPDATE status = VALUES(status);
+            """
+
 # MySQL 연결 함수
 def connect_db():
     retry = 5
@@ -20,13 +36,7 @@ def connect_db():
 
             # 테이블 생성 (초기 실행 시 필요)
             with conn.cursor() as cursor:
-                cursor.execute("""
-                    CREATE TABLE IF NOT EXISTS processed_tasks (
-                        task_id VARCHAR(36) PRIMARY KEY,
-                        message TEXT NOT NULL,
-                        status VARCHAR(10) NOT NULL
-                    );
-                """)
+                cursor.execute(get_create_table_sql())
 
             return conn
         except Exception as e:
