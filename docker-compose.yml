@@ -196,6 +196,37 @@ services:
       - RABBIT_PORT1=5672
       - RABBIT_PORT2=5672
       - RABBIT_PORT3=5672
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_USER=user
+      - DB_PASS=password
+      - DB_NAME=test_db
+    networks:
+      - default
+    depends_on:
+      - loki
+    restart: always
+
+  dlxprocess:
+    build: 
+      context: .
+      dockerfile: Dockerfile.dlxprocess
+    container_name: dlxprocess
+    environment:
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_USER=user
+      - DB_PASS=password
+      - DB_NAME=test_db
+      - RABBIT_HOST1=rabbitmq1
+      - RABBIT_HOST2=rabbitmq2
+      - RABBIT_HOST3=rabbitmq3
+      - RABBIT_PORT1=5672
+      - RABBIT_PORT2=5672
+      - RABBIT_PORT3=5672
+      - RABBITMQ_USER=test
+      - RABBITMQ_PASS=test
+      - LOKI_URL=http://loki:3100/loki/api/v1/push
     networks:
       - default
     depends_on:

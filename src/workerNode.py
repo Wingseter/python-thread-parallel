@@ -91,7 +91,7 @@ def process_message(ch, method, properties, body):
 
         # 결과 저장
         with db_conn.cursor() as cursor:
-            cursor.execute(get_insert_task_sql(), (task_id, uppercase_message, "Success"))
+            cursor.execute(get_insert_task_sql(), (task_id, uppercase_message))
         mark_task_processed(task_id)
 
         # 작업 후 에러 테스트 

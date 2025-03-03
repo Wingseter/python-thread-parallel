@@ -7,17 +7,16 @@ def get_create_processed_tasks_table_sql():
     return """
             CREATE TABLE IF NOT EXISTS processed_tasks (
                 task_id VARCHAR(36) PRIMARY KEY,
-                message TEXT NOT NULL,
+                message TEXT NOT NULL
             );
             """
 
-# failed_tasks 테이블 생성 SQL (DLX 메시지를 저장하기 위한 테이블)
+# failed_tasks 테이블 생성 SQL 
 def get_create_failed_tasks_table_sql():
     return """
             CREATE TABLE IF NOT EXISTS failed_tasks (
                 task_id VARCHAR(36) PRIMARY KEY,
-                message TEXT NOT NULL,
-                error_reason TEXT NOT NULL,
+                message TEXT NOT NULL
             );
             """
 
@@ -25,15 +24,18 @@ def get_create_failed_tasks_table_sql():
 def get_insert_task_sql():
     return """
                 INSERT INTO processed_tasks (task_id, message) 
-                VALUES (%s, %s);
+                VALUES (%s, %s)
+                ON DUPLICATE KEY UPDATE message = VALUES(message);
             """
 
-# failed_tasks 테이블에 삽입 SQL (DLX 메시지 기록)
+# failed_tasks 테이블에 삽입 SQL 
 def get_insert_failed_task_sql():
     return """
                 INSERT INTO failed_tasks (task_id, message) 
-                VALUES (%s, %s);
+                VALUES (%s, %s)
+                ON DUPLICATE KEY UPDATE message = VALUES(message);
             """
+
 
 # MySQL 연결 함수
 def connect_db():

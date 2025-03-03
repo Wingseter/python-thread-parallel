@@ -1,0 +1,19 @@
+FROM python:3.9
+
+# Tini 설치
+RUN apt-get update && apt-get install -y tini && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+COPY requirements/requirements.txt ./requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY src/workerDLXProcess.py .
+COPY src/rabbitmqHandler.py .
+COPY src/timeoutBlockingConnection.py .
+COPY src/config.py .
+COPY src/dbHandler.py .
+COPY src/logger.py .
+COPY src/lokiHandler.py .
+
+CMD ["python", "workerDLXProcess.py"]

@@ -13,8 +13,6 @@ last_rabbit_connection = 0 # option: 0, 1, 2
 def create_rabbit_channel():
     global last_rabbit_connection
 
-    print("Waiting for RabbitMQ Connection...")
-    
     credentials = pika.PlainCredentials(config.get_rabbit_user(), config.get_rabbit_pass())
     connection = None
 

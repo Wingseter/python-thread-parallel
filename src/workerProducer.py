@@ -6,7 +6,6 @@ import pika
 
 from rabbitmqHandler import create_rabbit_channel
 
-
 # 메시지 전송
 def send_messages(num_messages=10):
     for i in range(1, num_messages + 1):
@@ -15,8 +14,7 @@ def send_messages(num_messages=10):
 
         # 메시지 생성
         message = f"Message {i}"
-        status = "Not Processed"
-        message_body = json.dumps({"task_id": task_id, "status": status, "message": message})
+        message_body = json.dumps({"task_id": task_id, "message": message})
         
         try:
             # 새로운 RabbitMQ 연결
