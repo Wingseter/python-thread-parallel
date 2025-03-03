@@ -1,12 +1,17 @@
 services:
   db:
-    image: mongo:7.0.0
+    image: mysql:8.0
     container_name: db
-    ports:
-      - "27017:27017"
     restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: test_db
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+    ports:
+      - "3306:3306"
     volumes:
-      - ./mongo-data:/data/db 
+      - ./mysql-data:/var/lib/mysql
 
   rabbitmq1:
     image: rabbitmq:3-management
@@ -25,7 +30,7 @@ services:
     command: >
       /bin/sh -c "
       rabbitmq-server -detached;
-      sleep 15;
+      sleep 10;
       rabbitmqctl set_policy ha-all '.*' '{\"ha-mode\":\"all\",\"ha-sync-mode\":\"automatic\"}';
       tail -f /dev/null"
 
@@ -42,7 +47,7 @@ services:
       - rabbitmq1
     command: >
       /bin/sh -c "rabbitmq-server -detached;
-                  sleep 15;
+                  sleep 10;
                   rabbitmqctl stop_app;
                   rabbitmqctl join_cluster rabbit@rabbitmq1;
                   rabbitmqctl start_app;
@@ -66,7 +71,7 @@ services:
       - rabbitmq1
     command: >
       /bin/sh -c "rabbitmq-server -detached;
-                  sleep 15;
+                  sleep 10;
                   rabbitmqctl stop_app;
                   rabbitmqctl join_cluster rabbit@rabbitmq1;
                   rabbitmqctl start_app;
@@ -90,8 +95,11 @@ services:
       - RABBIT_PORT1=5672
       - RABBIT_PORT2=5672
       - RABBIT_PORT3=5672
-      - MONGO_HOST=db
-      - MONGO_PORT=27017
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_USER=user
+      - DB_PASS=password
+      - DB_NAME=test_db
       - WORKER_PORT=8001
       - WORKER_ID=worker1
       - REMOTE_PORT=9001
@@ -119,8 +127,11 @@ services:
       - REMOTE_PORT=9002
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - MONGO_HOST=db
-      - MONGO_PORT=27017
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_USER=user
+      - DB_PASS=password
+      - DB_NAME=test_db
       - RABBIT_HOST1=rabbitmq1
       - RABBIT_HOST2=rabbitmq2
       - RABBIT_HOST3=rabbitmq3
@@ -149,8 +160,11 @@ services:
       - REMOTE_PORT=9003
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - MONGO_HOST=db
-      - MONGO_PORT=27017
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_USER=user
+      - DB_PASS=password
+      - DB_NAME=test_db
       - RABBIT_HOST1=rabbitmq1
       - RABBIT_HOST2=rabbitmq2
       - RABBIT_HOST3=rabbitmq3
