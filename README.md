@@ -25,7 +25,7 @@
 ### 2. 예외 처리 및 장애 대응
 - **각 worker의 thread 마다 예외 처리를 적용**, 예외 처리를 강화하여 하나의 작업이라도 실패하면 다시 작업하도록 설계.
 - **Docker Compose의 `restart: always` 옵션을 사용**하여 노드 장애 발생 시 자동 재시작.
-- **Dead Letter Exchange 및 TTL(Time-To-Live) 설정**을 활용하여 유실된 작업을 다른 큐에 저장.
+- **Dead Letter Exchange 및 TTL(Time-To-Live) 설정**을 활용하여 유실된 작업을 다른 큐에 저장한후 최종적으로 DB에 저장
 - **RabbitMQ의 클러스터링 및 미러링 기능 활용**, 하나의 노드가 다운되더라도 다른 노드가 대체 가능.
 
 ### 3. 모니터링 시스템 구축
@@ -77,6 +77,4 @@
 - Loki, Promtail, Grafana를 통한 로그 분석 및 실시간 모니터링
 - Python threading을 이용한 멀티스레드 기반의 병렬 처리
 - Docker Compose를 활용하여 손쉬운 환경 구성 및 배포
-
-이 프로젝트는 대규모 작업을 안정적으로 처리하고 모니터링할 수 있도록 설계되었으며, 향후 확장성을 고려하여 구축되었습니다.
 
