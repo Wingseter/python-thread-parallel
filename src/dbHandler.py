@@ -2,20 +2,37 @@ import pymysql
 import config
 from logger import log
 
-def get_create_table_sql():
+# processed_tasks 테이블 생성 SQL
+def get_create_processed_tasks_table_sql():
     return """
             CREATE TABLE IF NOT EXISTS processed_tasks (
                 task_id VARCHAR(36) PRIMARY KEY,
                 message TEXT NOT NULL,
-                status VARCHAR(10) NOT NULL
             );
             """
 
+# failed_tasks 테이블 생성 SQL (DLX 메시지를 저장하기 위한 테이블)
+def get_create_failed_tasks_table_sql():
+    return """
+            CREATE TABLE IF NOT EXISTS failed_tasks (
+                task_id VARCHAR(36) PRIMARY KEY,
+                message TEXT NOT NULL,
+                error_reason TEXT NOT NULL,
+            );
+            """
+
+# processed_tasks 테이블에 삽입 SQL
 def get_insert_task_sql():
-    return  """
-                INSERT INTO processed_tasks (task_id, message, status) 
-                VALUES (%s, %s, %s)
-                ON DUPLICATE KEY UPDATE status = VALUES(status);
+    return """
+                INSERT INTO processed_tasks (task_id, message) 
+                VALUES (%s, %s);
+            """
+
+# failed_tasks 테이블에 삽입 SQL (DLX 메시지 기록)
+def get_insert_failed_task_sql():
+    return """
+                INSERT INTO failed_tasks (task_id, message) 
+                VALUES (%s, %s);
             """
 
 # MySQL 연결 함수
@@ -34,9 +51,10 @@ def connect_db():
             )
             log("info", "Connected to MySQL successfully")
 
-            # 테이블 생성 (초기 실행 시 필요)
+            # 테이블 생성 초기 실행 시 필요
             with conn.cursor() as cursor:
-                cursor.execute(get_create_table_sql())
+                cursor.execute(get_create_processed_tasks_table_sql())
+                cursor.execute(get_create_failed_tasks_table_sql()) 
 
             return conn
         except Exception as e:
