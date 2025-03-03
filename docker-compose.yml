@@ -47,7 +47,7 @@ services:
       - rabbitmq1
     command: >
       /bin/sh -c "rabbitmq-server -detached;
-                  sleep 10;
+                  sleep 15;
                   rabbitmqctl stop_app;
                   rabbitmqctl join_cluster rabbit@rabbitmq1;
                   rabbitmqctl start_app;
@@ -71,7 +71,7 @@ services:
       - rabbitmq1
     command: >
       /bin/sh -c "rabbitmq-server -detached;
-                  sleep 10;
+                  sleep 15;
                   rabbitmqctl stop_app;
                   rabbitmqctl join_cluster rabbit@rabbitmq1;
                   rabbitmqctl start_app;
