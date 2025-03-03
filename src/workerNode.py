@@ -7,12 +7,14 @@ import threading
 import pika
 
 import config
-from connectService import create_rabbit_channel, connect_db, is_task_processed, mark_task_processed
+from rabbitmqHandler import create_rabbit_channel
+from dbHandler import connect_db
+from redisHandler import is_task_processed, mark_task_processed
 from logger import log
 from multiThreadTask import task
 
-# MongoDB 연결
-collection = connect_db()
+# mySQL 연결
+db_conn = connect_db()
 
 # Remote Control 변수 
 error_num = 0
@@ -44,6 +46,24 @@ def socket_server():
         
         conn.close()
 
+def error_test_before(error_num, message):
+    # 예외 상황 1, 2
+    if error_num == 1:
+        raise Exception(f"에러 상황: 들어온 {message} 에 작업 중에 에러가 발생한 상황(ACK 없이 재시도)")
+    elif error_num == 2:
+        log("error", "에러 발생(작업 시작 ~ 중간) 노드 죽음")
+        time.sleep(1)
+        os.kill(os.getpid(), signal.SIGSEGV) # 노드가 죽어서 다음 실행 못함
+
+def error_test_after(error_num, message):
+    # 예외 상황 3, 4
+    if error_num == 3:
+        raise Exception(f"에러 상황: 작업 완료 했는데 노드가 불안정해서 {message} 중복이 발생할 수 있는 상황")
+    elif error_num == 4:
+        log("error", "에러 발생(작업 이후) 노드 죽음")
+        time.sleep(1)
+        os.kill(os.getpid(), signal.SIGSEGV)
+
 
 # RabbitMQ 메시지 처리
 def process_message(ch, method, properties, body):
@@ -63,28 +83,23 @@ def process_message(ch, method, properties, body):
         return
     
     try:
-        # 예외 상황 1, 2 
-        if error_num == 1:
-            raise Exception(f"에러 상황: 들어온 {message} 에 작업 중에 에러가 발생한 상황(ACK 없이 재시도)")
-        if error_num == 2:
-            log("error", "에러 발생(작업 시작 ~ 중간) 노드 죽음")
-            time.sleep(1)
-            os.kill(os.getpid(), signal.SIGSEGV) # 노드가 죽어서 다음 실행 못함
+        # 작업 전 에러 테스트 
+        error_test_before(error_num=error_num, message=message)
 
         # 작업 처리
         uppercase_message = task(message)
 
         # 결과 저장
-        collection.insert_one({"task_id": task_id, "message": uppercase_message, "status": "Success"})
+        with db_conn.cursor() as cursor:
+            cursor.execute("""
+                INSERT INTO processed_tasks (task_id, message, status) 
+                VALUES (%s, %s, %s)
+                ON DUPLICATE KEY UPDATE status = VALUES(status);
+            """, (task_id, uppercase_message, "Success"))
         mark_task_processed(task_id)
 
-        # 예외 상황 3, 4
-        if error_num == 3:
-            raise Exception(f"에러 상황: 작업 완료 했는데 노드가 불안정해서 {message} 중복이 발생할 수 있는 상황")
-        if error_num == 4:
-            log("error", "에러 발생(작업 이후) 노드 죽음")
-            time.sleep(1)
-            os.kill(os.getpid(), signal.SIGSEGV)
+        # 작업 후 에러 테스트 
+        error_test_after(error_num=error_num, message=message)
 
         # 메시지 처리 완료
         ch.basic_ack(delivery_tag=method.delivery_tag)

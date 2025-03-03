@@ -1,5 +1,6 @@
 pika
 uuid
-pymongo
+pymysql
 requests
 redis          
+cryptography

@@ -1,14 +1,14 @@
 # Python Thread Parallel
 
 ## 프로젝트 개요
-해당 프로젝트는 Multi-GPU 리소스를 효율적으로 사용하기 위한 안정적인 큐 시스템을 구축하는 것을 목표로 합니다. RabbitMQ를 활용한 작업 큐 시스템을 통해 분산 처리를 수행하며, Python의 threading을 활용하여 worker 노드에서 병렬로 작업을 처리합니다. 또한, MongoDB를 활용해 작업 결과를 저장하고, Loki 및 Grafana를 통해 로그 모니터링 기능을 제공합니다.
+해당 프로젝트는 Multi-GPU 리소스를 효율적으로 사용하기 위한 안정적인 큐 시스템을 구축하는 것을 목표로 합니다. RabbitMQ를 활용한 작업 큐 시스템을 통해 분산 처리를 수행하며, Python의 threading을 활용하여 worker 노드에서 병렬로 작업을 처리합니다. 또한, MySQL를 활용해 작업 결과를 저장하고, Loki 및 Grafana를 통해 로그 모니터링 기능을 제공합니다.
 
 ## 구현 내용
 - **Python 기반의 분산 큐 시스템**
 - **RabbitMQ 클러스터링과 미러링을 활용한 안정적 메시지 큐 시스템 구축**
 - **3개의 worker 노드가 메시지를 수신하고 작업을 수행**
 - **Python threading을 이용한 멀티스레딩 작업 처리**
-- **MongoDB를 활용한 작업 결과 저장**
+- **MySQL를 활용한 작업 결과 저장**
 - **Redis를 활용한 중복 처리 방지**
 - **Docker Compose 기반의 컨테이너 실행 환경 제공**
 - **Loki, Promtail, Grafana를 통한 로그 모니터링 시스템 구축**
@@ -23,7 +23,7 @@
   - **Redis를 이용하여 작업의 UUID를 캐싱**하여 중복 작업 방지.
 
 ### 2. 예외 처리 및 장애 대응
-- **각 worker의 thread 마다 예외 처리를 적용**, 하나의 thread에서 오류가 발생해도 시스템 전체에 영향을 주지 않도록 설계.
+- **각 worker의 thread 마다 예외 처리를 적용**, 예외 처리를 강화하여 하나의 작업이라도 실패하면 다시 작업하도록 설계.
 - **Docker Compose의 `restart: always` 옵션을 사용**하여 노드 장애 발생 시 자동 재시작.
 - **Dead Letter Exchange 및 TTL(Time-To-Live) 설정**을 활용하여 유실된 작업을 다른 큐에 저장.
 - **RabbitMQ의 클러스터링 및 미러링 기능 활용**, 하나의 노드가 다운되더라도 다른 노드가 대체 가능.
@@ -72,7 +72,7 @@
 
 ## 기타 정보
 - RabbitMQ 클러스터링을 통해 안정적인 메시지 큐 운영 가능
-- MongoDB를 활용하여 작업 결과를 안전하게 저장
+- MySQL를 활용하여 작업 결과를 안전하게 저장
 - Redis 캐싱을 활용한 중복 작업 방지
 - Loki, Promtail, Grafana를 통한 로그 분석 및 실시간 모니터링
 - Python threading을 이용한 멀티스레드 기반의 병렬 처리

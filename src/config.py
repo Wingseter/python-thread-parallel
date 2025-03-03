@@ -6,11 +6,20 @@ def get_redis_host():
 def get_redis_port():
     return int(os.getenv("REDIS_PORT", 6379))
 
-def get_mongo_host():
-    return os.getenv("MONGO_HOST", "localhost")
+def get_db_host():
+    return os.getenv("DB_HOST", "localhost")
 
-def get_mongo_port():
-    return int(os.getenv("MONGO_PORT", 27017))
+def get_db_port():
+    return int(os.getenv("DB_PORT", 27017))
+
+def get_db_user():
+    return os.getenv("DB_USER", "user")
+
+def get_db_pass():
+    return os.getenv("DB_PASS", "password")
+
+def get_db_name():
+    return os.getenv("DB_NAME", "test_db")
 
 def get_rabbit_hosts():
     return [

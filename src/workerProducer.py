@@ -4,7 +4,7 @@ import uuid
 
 import pika
 
-from connectService import create_rabbit_channel
+from rabbitmqHandler import create_rabbit_channel
 
 
 # 메시지 전송

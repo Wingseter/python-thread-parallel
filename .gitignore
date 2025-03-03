@@ -3,4 +3,4 @@
 /data
 /redis-data
 /loki-data
-/mongo-data
+/mysql-data

@@ -2,31 +2,12 @@ import time
 
 import pika
 import pika.exceptions
-import pymongo
-import redis
 
 from timeoutBlockingConnection import TimeoutBlockingConnection
 import config
 
-
 # RabbitMQ 마지막 연결
 last_rabbit_connection = 0 # option: 0, 1, 2
-
-# Redis 클라이언트 설정
-redis_client = redis.StrictRedis(
-    host=config.get_redis_host(), 
-    port=config.get_redis_port(), 
-    db=0, 
-    decode_responses=True
-)
-
-# 작업이 완료된 task_id를 Redis에서 확인
-def is_task_processed(task_id):
-    return redis_client.exists(f"task:{task_id}")
-
-# 작업 완료된 task_id를 Redis에 저장 (최대 1시간)
-def mark_task_processed(task_id):
-    redis_client.setex(f"task:{task_id}", 3600, "1")
 
 # RabbitMQ 채널 생성
 def create_rabbit_channel():
@@ -96,15 +77,3 @@ def setup_task_queue(channel):
     channel.queue_declare(queue="task_queue", durable=True, arguments=arguments)
     channel.basic_qos(prefetch_count=1)
 
-
-# MongoDB 연결
-def connect_db():
-    try:
-        mongo_client = pymongo.MongoClient(
-            f"mongodb://{config.get_mongo_host()}:{config.get_mongo_port()}/"
-        )
-        db = mongo_client["test_db"]
-        collection = db["processed_tasks"]
-        return collection
-    except Exception as e:
-        print(f"Runtime Error: Failed to connect to MongoDB")

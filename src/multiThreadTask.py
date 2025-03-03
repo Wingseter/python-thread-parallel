@@ -2,7 +2,7 @@ import threading
 
 from logger import log
 
-# 메시지를 처리하는 테스크 함수 예시로 대문자로 바꾸는 것을 thread로 처리 
+# 메시지를 처리하는 테스크 함수 예시로 문제에 정의된 학습 작업을 나타냄
 def task(message):
     result = [''] * len(message)
     error_flag = threading.Event()
